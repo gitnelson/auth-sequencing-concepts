@@ -180,9 +180,9 @@
     }
 
     /* ── Location Group ── */
-    .location-group { padding: 16px 24px 0; }
-    .location-group-header { font-size: 13px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-    .location-group + .location-group { border-top: 1px solid #eee; margin-top: 4px; }
+    .location-group { padding: 20px 24px 0; }
+    .location-group-header { font-size: 20px; font-weight: 700; color: #333; margin-bottom: 14px; }
+    .location-group + .location-group { border-top: 2px solid #e0e0e0; margin-top: 8px; }
 
     /* ── Card Grid ── */
     .card-grid {
@@ -448,8 +448,6 @@
           state.status = opt;
           document.getElementById('status-value').textContent = opt;
           closeAllDropdowns();
-          applied.status = opt;
-          renderCards();
         });
         el.appendChild(div);
       });
