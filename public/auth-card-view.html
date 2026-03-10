@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth Sequencing — Cards+</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Top Nav ── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      height: 48px;
+      background: #e0e0e0;
+      padding: 0 16px;
+      border-bottom: 1px solid #ccc;
+      gap: 24px;
+    }
+    .top-nav .logo { font-weight: 700; font-size: 15px; color: #555; letter-spacing: 1px; }
+    .top-nav .breadcrumb { font-size: 13px; color: #777; }
+    .top-nav .breadcrumb span { color: #444; font-weight: 600; }
+
+    /* ── Main Layout ── */
+    .app-shell { background: #fff; min-height: calc(100vh - 48px); display: flex; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      border-right: 1px solid #ddd;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 14px;
+    }
+    .sidebar-title { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 2px; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
+    .filter-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* ── MUI-style Multi-Select ── */
+    .select-control {
+      border: 1px solid #c4c4c4;
+      border-radius: 4px;
+      padding: 5px 30px 5px 8px;
+      min-height: 38px;
+      cursor: pointer;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      background: #fff;
+      position: relative;
+      transition: border-color 0.1s;
+      user-select: none;
+    }
+    .select-control:hover { border-color: #333; }
+    .select-control.open { border-color: #1976d2; border-width: 2px; padding: 4px 29px 4px 7px; }
+    .select-arrow {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: #666;
+      pointer-events: none;
+      transition: transform 0.15s;
+    }
+    .select-control.open .select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .select-placeholder { font-size: 13px; color: #aaa; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(25,118,210,0.10);
+      color: #1565c0;
+      border-radius: 12px;
+      padding: 2px 4px 2px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      max-width: 160px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chip-label { overflow: hidden; text-overflow: ellipsis; }
+    .chip-delete {
+      cursor: pointer;
+      font-size: 14px;
+      color: rgba(21,101,192,0.6);
+      line-height: 1;
+      flex-shrink: 0;
+      padding: 0 2px;
+      border-radius: 50%;
+    }
+    .chip-delete:hover { background: rgba(21,101,192,0.15); color: #1565c0; }
+
+    .select-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      z-index: 1000;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #333;
+    }
+    .select-option:hover { background: rgba(25,118,210,0.06); }
+    .select-option input[type="checkbox"] { accent-color: #1976d2; cursor: pointer; flex-shrink: 0; }
+
+    /* ── Single Select (Status) ── */
+    .single-select-control {
+      border: 1px solid #c4c4c4;
+      border-radius: 4px;
+      padding: 7px 30px 7px 10px;
+      height: 38px;
+      cursor: pointer;
+      background: #fff;
+      position: relative;
+      font-size: 13px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      user-select: none;
+      transition: border-color 0.1s;
+    }
+    .single-select-control:hover { border-color: #333; }
+    .single-select-control.open { border-color: #1976d2; border-width: 2px; padding: 6px 29px 6px 9px; }
+    .single-select-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      z-index: 1000;
+    }
+    .single-option {
+      padding: 9px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #333;
+    }
+    .single-option:hover { background: rgba(25,118,210,0.06); }
+    .single-option.selected { background: rgba(25,118,210,0.10); color: #1565c0; font-weight: 500; }
+
+    /* ── Sidebar Actions ── */
+    .sidebar-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+    .btn-search {
+      padding: 7px 18px; font-size: 13px; font-weight: 500;
+      border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #555; cursor: pointer;
+    }
+    .btn-search:hover { background: #f5f5f5; }
+    .btn-reset { font-size: 13px; color: #1976d2; background: none; border: none; cursor: pointer; font-weight: 500; }
+    .btn-reset:hover { text-decoration: underline; }
+
+    /* ── Content Area ── */
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow: auto; }
+    .content-header { padding: 16px 24px 0; border-bottom: 1px solid #e0e0e0; }
+    .content-header h1 { font-size: 20px; font-weight: 700; color: #333; margin-bottom: 12px; }
+    .content-toolbar { display: flex; align-items: flex-end; justify-content: space-between; }
+
+    .tabs { display: flex; gap: 0; }
+    .tab {
+      padding: 8px 16px; font-size: 13px; font-weight: 500; color: #888;
+      border: none; border-bottom: 2px solid transparent; background: none; cursor: pointer; margin-bottom: -1px;
+    }
+    .tab.active { color: #1976d2; border-bottom: 2px solid #1976d2; font-weight: 600; }
+    .tab .count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; border-radius: 10px;
+      background: #e3f2fd; color: #1976d2; font-size: 11px; font-weight: 700; margin-left: 6px; padding: 0 5px;
+    }
+    .tab:not(.active) .count { background: #eee; color: #888; }
+
+    .toolbar-actions { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; }
+    .btn-filters {
+      padding: 6px 14px; font-size: 13px; border: 1px solid #bbb;
+      border-radius: 4px; background: #fff; color: #555; cursor: pointer; font-weight: 500;
+    }
+    .btn-wizard {
+      padding: 6px 14px; font-size: 13px; border: 1px solid #888;
+      border-radius: 4px; background: #f0f0f0; color: #333; cursor: pointer; font-weight: 600;
+    }
+
+    /* ── Location Group ── */
+    .location-group { padding: 16px 24px 0; }
+    .location-group-header { font-size: 13px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .location-group + .location-group { border-top: 1px solid #eee; margin-top: 4px; }
+
+    /* ── Card Grid ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding-bottom: 18px;
+      align-content: start;
+      align-items: start;
+    }
+
+    /* ── Product Card ── */
+    .product-card { border: 1px solid #ddd; border-radius: 6px; background: #fff; overflow: hidden; }
+    .card-header {
+      padding: 12px 14px 8px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 8px; border-radius: 6px 6px 0 0;
+    }
+    .card-header.allowed { background: #fff; }
+    .card-header.not-allowed { background: #fce4ec; }
+    .product-name { font-size: 14px; font-weight: 700; color: #333; line-height: 1.3; }
+    .status-badge {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px;
+      white-space: nowrap; flex-shrink: 0; border: 1px solid transparent;
+    }
+    .status-badge.allowed { color: #2e7d4f; background: #fff; border-color: #2e7d4f; }
+    .status-badge.not-allowed { color: #c0392b; border-color: #f5a8a8; background: #fff; }
+
+    .sequence-section { padding: 8px 14px 12px; }
+    .sequence-list { list-style: none; }
+    .sequence-list li { display: flex; align-items: baseline; gap: 6px; padding: 4px 0; font-size: 12px; }
+    .seq-num { font-size: 12px; font-weight: 700; color: #aaa; min-width: 14px; flex-shrink: 0; }
+    .seq-supplier { color: #444; line-height: 1.3; }
+    .seq-supplier.primary { font-weight: 700; color: #333; }
+    .not-sequenced-section { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #e0e0e0; }
+    .not-sequenced-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #bbb; margin-bottom: 3px; }
+    .not-sequenced-name { font-size: 11px; color: #bbb; font-style: italic; padding: 1px 0; }
+
+    .card-footer { padding: 8px 14px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
+    .btn-edit { padding: 4px 14px; font-size: 12px; font-weight: 600; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #555; cursor: pointer; }
+    .btn-edit:hover { background: #f5f5f5; }
+
+    .no-results { padding: 48px 24px; text-align: center; color: #aaa; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <div class="logo">SWIFT</div>
+    <div class="breadcrumb">Loading &rsaquo; <span>Auth Sequencing</span></div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-title">Filters</div>
+
+      <div class="filter-group" id="affiliate-group">
+        <div class="filter-label">Affiliate</div>
+        <div class="select-control" id="affiliate-control" onclick="toggleDropdown('affiliate')">
+          <span class="select-placeholder" id="affiliate-placeholder" style="display:none">All affiliates</span>
+          <div id="affiliate-chips" style="display:contents"></div>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+        <div class="select-dropdown" id="affiliate-dropdown" style="display:none"></div>
+      </div>
+
+      <div class="filter-group" id="product-group">
+        <div class="filter-label">Product</div>
+        <div class="select-control" id="product-control" onclick="toggleDropdown('product')">
+          <span class="select-placeholder" id="product-placeholder">All products</span>
+          <div id="product-chips" style="display:contents"></div>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+        <div class="select-dropdown" id="product-dropdown" style="display:none"></div>
+      </div>
+
+      <div class="filter-group" id="status-group">
+        <div class="filter-label">Status</div>
+        <div class="single-select-control" id="status-control" onclick="toggleDropdown('status')">
+          <span id="status-value">All</span>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+        <div class="single-select-dropdown" id="status-dropdown" style="display:none"></div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button class="btn-search" onclick="applyFilters()">Search</button>
+        <button class="btn-reset" onclick="resetFilters()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <div class="content-header">
+        <h1 id="content-title">347 BETTENDORF</h1>
+        <div class="content-toolbar">
+          <div class="tabs">
+            <div class="tab active">Base Products<span class="count" id="base-count">6</span></div>
+            <div class="tab">Custom Products<span class="count">13</span></div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn-wizard">Launch Sequencing Wizard</button>
+          </div>
+        </div>
+      </div>
+      <div id="cards-container"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Data ────────────────────────────────────────────────────────────────
+
+    const AFFILIATES = [
+      '201 DES MOINES',
+      '207 MASON CITY',
+      '214 DAVENPORT',
+      '301 DUBUQUE',
+      '332 CEDAR RAPIDS',
+      '347 BETTENDORF',
+      '401 WATERLOO',
+    ];
+
+    const PRODUCTS = [
+      'A Premium Unleaded',
+      'B Biodiesel Blend',
+      'E Denatured Fuel Ethanol',
+      'R Regular Unleaded',
+      'V Sub Octane Unleaded',
+      'X ULSD #2 Diesel',
+    ];
+
+    const STATUS_OPTIONS = ['All', 'Allowed', 'Not Allowed'];
+
+    const ALL_CARDS = [
+      // ── 347 BETTENDORF ──
+      {
+        affiliate: '347 BETTENDORF', product: 'A Premium Unleaded', status: 'allowed',
+        suppliers: ['245 Titan Energy Solutions', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp', '299 Horizon Petroleum Group'],
+        notSequenced: ['000 Citgo Petroleum Corp', '000 Semifuel LP'],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'A Premium Unleaded', status: 'not-allowed',
+        suppliers: ['245 Titan Energy Solutions', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp', '299 Horizon Petroleum Group', '300 NovaTech Innovations', '301 Quantum Dynamics', '302 EcoSolutions Corp', '303 Stellar Ventures'],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'E Denatured Fuel Ethanol', status: 'not-allowed',
+        suppliers: ['245 Titan Energy Solutions', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp', '299 Horizon Petroleum Group', '300 NovaTech Innovations', '301 Quantum Dynamics', '302 EcoSolutions Corp', '303 Stellar Ventures', '304 Apex Manufacturing', '305 Zenith Robotics'],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'V Sub Octane Unleaded', status: 'allowed',
+        suppliers: ['245 Titan Energy Solutions', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp', '299 Horizon Petroleum Group', '300 NovaTech Innovations'],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'X ULSD #2 Diesel', status: 'allowed',
+        suppliers: ['245 Titan Energy Solutions', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp', '299 Horizon Petroleum Group', '300 NovaTech Innovations', '301 Quantum Dynamics', '302 EcoSolutions Corp', '303 Stellar Ventures', '304 Apex Manufacturing', '305 Zenith Robotics'],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'R Regular Unleaded', status: 'allowed',
+        suppliers: ['245 Titan Energy Solutions', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp'],
+        notSequenced: ['000 Citgo Petroleum Corp'],
+      },
+      // ── 201 DES MOINES ──
+      {
+        affiliate: '201 DES MOINES', product: 'A Premium Unleaded', status: 'allowed',
+        suppliers: ['201 Lancer Energy Corp', '230 Thornfield Petroleum', '136 Baxter Energy Group'],
+      },
+      {
+        affiliate: '201 DES MOINES', product: 'E Denatured Fuel Ethanol', status: 'allowed',
+        suppliers: ['201 Lancer Energy Corp', '230 Thornfield Petroleum', '263 Foxridge Supply Group', '136 Baxter Energy Group', '160 Questmark Energy'],
+      },
+      {
+        affiliate: '201 DES MOINES', product: 'V Sub Octane Unleaded', status: 'not-allowed',
+        suppliers: ['201 Lancer Energy Corp', '263 Foxridge Supply Group'],
+      },
+      {
+        affiliate: '201 DES MOINES', product: 'X ULSD #2 Diesel', status: 'allowed',
+        suppliers: ['201 Lancer Energy Corp', '230 Thornfield Petroleum', '263 Foxridge Supply Group', '136 Baxter Energy Group', '160 Questmark Energy', '311 Prairie Fuel Co', '402 Midland Energy'],
+      },
+      // ── 207 MASON CITY ──
+      {
+        affiliate: '207 MASON CITY', product: 'A Premium Unleaded', status: 'allowed',
+        suppliers: ['412 Northstar Fuel', '287 Apex Oil & Gas', '213 Quantum Fuel Services', '256 Summit Hydrocarbon Corp'],
+      },
+      {
+        affiliate: '207 MASON CITY', product: 'E Denatured Fuel Ethanol', status: 'not-allowed',
+        suppliers: ['412 Northstar Fuel', '230 Thornfield Petroleum', '263 Foxridge Supply Group'],
+      },
+      {
+        affiliate: '207 MASON CITY', product: 'R Regular Unleaded', status: 'allowed',
+        suppliers: ['412 Northstar Fuel', '287 Apex Oil & Gas'],
+        notSequenced: ['000 Citgo Petroleum Corp'],
+      },
+    ];
+
+    // ── State ────────────────────────────────────────────────────────────────
+
+    let state = {
+      affiliates: ['347 BETTENDORF'],
+      products: [],
+      status: 'All',
+    };
+
+    let applied = { ...state, affiliates: [...state.affiliates], products: [...state.products] };
+    let openDropdown = null;
+
+    // ── Multi-select ─────────────────────────────────────────────────────────
+
+    function buildMultiDropdown(id, options, getSelected, onToggle) {
+      const el = document.getElementById(id + '-dropdown');
+      el.innerHTML = '';
+      options.forEach(opt => {
+        const selected = getSelected().includes(opt);
+        const div = document.createElement('div');
+        div.className = 'select-option' + (selected ? ' selected' : '');
+        div.innerHTML = `<input type="checkbox" ${selected ? 'checked' : ''} onclick="event.stopPropagation()"> <span>${opt}</span>`;
+        div.addEventListener('click', (e) => { e.stopPropagation(); onToggle(opt); });
+        el.appendChild(div);
+      });
+    }
+
+    function renderChips(id, selected, onRemove) {
+      const container = document.getElementById(id + '-chips');
+      const placeholder = document.getElementById(id + '-placeholder');
+      container.innerHTML = '';
+      if (selected.length === 0) {
+        if (placeholder) placeholder.style.display = '';
+        return;
+      }
+      if (placeholder) placeholder.style.display = 'none';
+      selected.forEach(val => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `<span class="chip-label">${val}</span><span class="chip-delete" onclick="event.stopPropagation(); ${onRemove}('${val.replace(/'/g, "\\'")}')">&#215;</span>`;
+        container.appendChild(chip);
+      });
+    }
+
+    function toggleAffiliate(val) {
+      const idx = state.affiliates.indexOf(val);
+      if (idx === -1) state.affiliates.push(val);
+      else state.affiliates.splice(idx, 1);
+      renderChips('affiliate', state.affiliates, 'removeAffiliate');
+      buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
+    }
+
+    function removeAffiliate(val) {
+      state.affiliates = state.affiliates.filter(a => a !== val);
+      renderChips('affiliate', state.affiliates, 'removeAffiliate');
+      buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
+    }
+
+    function toggleProduct(val) {
+      const idx = state.products.indexOf(val);
+      if (idx === -1) state.products.push(val);
+      else state.products.splice(idx, 1);
+      renderChips('product', state.products, 'removeProduct');
+      buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
+    }
+
+    function removeProduct(val) {
+      state.products = state.products.filter(p => p !== val);
+      renderChips('product', state.products, 'removeProduct');
+      buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
+    }
+
+    // ── Single Select (Status) ────────────────────────────────────────────────
+
+    function buildStatusDropdown() {
+      const el = document.getElementById('status-dropdown');
+      el.innerHTML = '';
+      STATUS_OPTIONS.forEach(opt => {
+        const div = document.createElement('div');
+        div.className = 'single-option' + (state.status === opt ? ' selected' : '');
+        div.textContent = opt;
+        div.addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.status = opt;
+          document.getElementById('status-value').textContent = opt;
+          closeAllDropdowns();
+          applied.status = opt;
+          renderCards();
+        });
+        el.appendChild(div);
+      });
+    }
+
+    // ── Dropdown open/close ───────────────────────────────────────────────────
+
+    function toggleDropdown(id) {
+      if (openDropdown === id) { closeAllDropdowns(); return; }
+      closeAllDropdowns();
+      openDropdown = id;
+      if (id === 'affiliate') {
+        buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
+        document.getElementById('affiliate-dropdown').style.display = '';
+        document.getElementById('affiliate-control').classList.add('open');
+      } else if (id === 'product') {
+        buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
+        document.getElementById('product-dropdown').style.display = '';
+        document.getElementById('product-control').classList.add('open');
+      } else if (id === 'status') {
+        buildStatusDropdown();
+        document.getElementById('status-dropdown').style.display = '';
+        document.getElementById('status-control').classList.add('open');
+      }
+    }
+
+    function closeAllDropdowns() {
+      openDropdown = null;
+      ['affiliate', 'product'].forEach(id => {
+        document.getElementById(id + '-dropdown').style.display = 'none';
+        document.getElementById(id + '-control').classList.remove('open');
+      });
+      document.getElementById('status-dropdown').style.display = 'none';
+      document.getElementById('status-control').classList.remove('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.filter-group')) closeAllDropdowns();
+    });
+
+    // ── Filtering & Rendering ─────────────────────────────────────────────────
+
+    function applyFilters() {
+      applied = { affiliates: [...state.affiliates], products: [...state.products], status: state.status };
+      renderCards();
+    }
+
+    function resetFilters() {
+      state = { affiliates: ['347 BETTENDORF'], products: [], status: 'All' };
+      applied = { affiliates: ['347 BETTENDORF'], products: [], status: 'All' };
+      renderChips('affiliate', state.affiliates, 'removeAffiliate');
+      renderChips('product', state.products, 'removeProduct');
+      document.getElementById('status-value').textContent = 'All';
+      renderCards();
+    }
+
+    function getFilteredCards() {
+      return ALL_CARDS.filter(card => {
+        const affiliateMatch = applied.affiliates.length === 0 || applied.affiliates.includes(card.affiliate);
+        const productMatch = applied.products.length === 0 || applied.products.includes(card.product);
+        const statusMatch = applied.status === 'All' ||
+          (applied.status === 'Allowed' && card.status === 'allowed') ||
+          (applied.status === 'Not Allowed' && card.status === 'not-allowed');
+        return affiliateMatch && productMatch && statusMatch;
+      });
+    }
+
+    function renderCards() {
+      const filtered = getFilteredCards();
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-results">No sequences match the current filters.</div>';
+        updateHeader(filtered);
+        return;
+      }
+
+      // Group by affiliate
+      const byAffiliate = {};
+      filtered.forEach(card => {
+        if (!byAffiliate[card.affiliate]) byAffiliate[card.affiliate] = [];
+        byAffiliate[card.affiliate].push(card);
+      });
+
+      const affiliateKeys = Object.keys(byAffiliate);
+      const showGroupHeaders = affiliateKeys.length > 1;
+
+      affiliateKeys.forEach(affiliate => {
+        const group = document.createElement('div');
+        group.className = 'location-group';
+
+        if (showGroupHeaders) {
+          const header = document.createElement('div');
+          header.className = 'location-group-header';
+          header.textContent = affiliate;
+          group.appendChild(header);
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'card-grid';
+
+        byAffiliate[affiliate].forEach(card => {
+          grid.appendChild(buildCard(card));
+        });
+
+        group.appendChild(grid);
+        container.appendChild(group);
+      });
+
+      updateHeader(filtered);
+    }
+
+    function buildCard(card) {
+      const div = document.createElement('div');
+      div.className = 'product-card';
+      const badgeLabel = card.status === 'allowed' ? 'Allowed' : 'Not Allowed';
+      const suppliersHtml = card.suppliers.map((s, i) =>
+        `<li><span class="seq-num">${i + 1}</span><span class="seq-supplier${i === 0 ? ' primary' : ''}">${s}</span></li>`
+      ).join('');
+      const notSeqHtml = (card.notSequenced && card.notSequenced.length)
+        ? `<div class="not-sequenced-section">
+             <div class="not-sequenced-label">Not Sequenced</div>
+             ${card.notSequenced.map(n => `<div class="not-sequenced-name">${n}</div>`).join('')}
+           </div>` : '';
+      div.innerHTML = `
+        <div class="card-header ${card.status}">
+          <div class="product-name">${card.product}</div>
+          <div class="status-badge ${card.status}">${badgeLabel}</div>
+        </div>
+        <div class="sequence-section">
+          <ul class="sequence-list">${suppliersHtml}</ul>
+          ${notSeqHtml}
+        </div>
+        <div class="card-footer"><button class="btn-edit">Edit</button></div>`;
+      return div;
+    }
+
+    function updateHeader(filtered) {
+      const affiliates = [...new Set(filtered.map(c => c.affiliate))];
+      const title = affiliates.length === 0 ? '—'
+        : affiliates.length === 1 ? affiliates[0]
+        : `${affiliates.length} locations`;
+      document.getElementById('content-title').textContent = title;
+      document.getElementById('base-count').textContent = filtered.length;
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    renderChips('affiliate', state.affiliates, 'removeAffiliate');
+    renderCards();
+  </script>
+
+</body>
+</html>

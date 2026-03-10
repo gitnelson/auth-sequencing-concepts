@@ -77,7 +77,7 @@ function NavBar({ current, collapsed, onToggle }: { current: Page; collapsed: bo
         variant={current === 'auth-cards' ? 'contained' : 'text'}
         onClick={() => navigate('auth-cards')}
       >
-        Cards
+        Cards+
       </Button>
       <Button
         size="small"
@@ -99,7 +99,7 @@ function NavBar({ current, collapsed, onToggle }: { current: Page; collapsed: bo
 type ConceptEntry = { page: Page; label: string };
 
 const CONCEPTS: ConceptEntry[] = [
-  { page: 'auth-cards',     label: 'Cards' },
+  { page: 'auth-cards',     label: 'Cards+' },
   { page: 'auth-table-r2', label: 'Table R2' },
 ];
 
