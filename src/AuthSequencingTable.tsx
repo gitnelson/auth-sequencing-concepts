@@ -423,7 +423,8 @@ export default function AuthSequencingTable() {
     });
   }, [search, statusFilter]);
 
-  const columns: GridColDef<AuthRow>[] = useMemo(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const columns: GridColDef<any>[] = useMemo(() => {
     if (view === 'byLocation') {
       return [locationColumn(), productColumn(), ...sharedColumns];
     }
