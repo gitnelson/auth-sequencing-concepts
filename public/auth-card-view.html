@@ -51,12 +51,10 @@
     .select-control {
       border: 1px solid #c4c4c4;
       border-radius: 4px;
-      padding: 5px 30px 5px 8px;
-      min-height: 38px;
+      padding: 7px 30px 7px 10px;
+      height: 38px;
       cursor: pointer;
       display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
       align-items: center;
       background: #fff;
       position: relative;
@@ -64,7 +62,7 @@
       user-select: none;
     }
     .select-control:hover { border-color: #333; }
-    .select-control.open { border-color: #1976d2; border-width: 2px; padding: 4px 29px 4px 7px; }
+    .select-control.open { border-color: #1976d2; border-width: 2px; padding: 6px 29px 6px 9px; }
     .select-arrow {
       position: absolute;
       right: 8px;
@@ -76,34 +74,8 @@
       transition: transform 0.15s;
     }
     .select-control.open .select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .select-value { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .select-placeholder { font-size: 13px; color: #aaa; }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      background: rgba(25,118,210,0.10);
-      color: #1565c0;
-      border-radius: 12px;
-      padding: 2px 4px 2px 8px;
-      font-size: 11px;
-      font-weight: 500;
-      max-width: 160px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .chip-label { overflow: hidden; text-overflow: ellipsis; }
-    .chip-delete {
-      cursor: pointer;
-      font-size: 14px;
-      color: rgba(21,101,192,0.6);
-      line-height: 1;
-      flex-shrink: 0;
-      padding: 0 2px;
-      border-radius: 50%;
-    }
-    .chip-delete:hover { background: rgba(21,101,192,0.15); color: #1565c0; }
 
     .select-dropdown {
       position: absolute;
@@ -272,8 +244,7 @@
       <div class="filter-group" id="affiliate-group">
         <div class="filter-label">Affiliate</div>
         <div class="select-control" id="affiliate-control" onclick="toggleDropdown('affiliate')">
-          <span class="select-placeholder" id="affiliate-placeholder" style="display:none">All affiliates</span>
-          <div id="affiliate-chips" style="display:contents"></div>
+          <span id="affiliate-value" class="select-placeholder">All affiliates</span>
           <span class="select-arrow">&#9660;</span>
         </div>
         <div class="select-dropdown" id="affiliate-dropdown" style="display:none"></div>
@@ -282,8 +253,7 @@
       <div class="filter-group" id="product-group">
         <div class="filter-label">Product</div>
         <div class="select-control" id="product-control" onclick="toggleDropdown('product')">
-          <span class="select-placeholder" id="product-placeholder">All products</span>
-          <div id="product-chips" style="display:contents"></div>
+          <span id="product-value" class="select-placeholder">All products</span>
           <span class="select-arrow">&#9660;</span>
         </div>
         <div class="select-dropdown" id="product-dropdown" style="display:none"></div>
@@ -434,34 +404,25 @@
       });
     }
 
-    function renderChips(id, selected, onRemove) {
-      const container = document.getElementById(id + '-chips');
-      const placeholder = document.getElementById(id + '-placeholder');
-      container.innerHTML = '';
+    function renderSelectValue(id, selected, placeholder) {
+      const el = document.getElementById(id + '-value');
       if (selected.length === 0) {
-        if (placeholder) placeholder.style.display = '';
-        return;
+        el.textContent = placeholder;
+        el.className = 'select-placeholder';
+      } else if (selected.length === 1) {
+        el.textContent = selected[0];
+        el.className = 'select-value';
+      } else {
+        el.textContent = selected.length + ' selected';
+        el.className = 'select-value';
       }
-      if (placeholder) placeholder.style.display = 'none';
-      selected.forEach(val => {
-        const chip = document.createElement('div');
-        chip.className = 'chip';
-        chip.innerHTML = `<span class="chip-label">${val}</span><span class="chip-delete" onclick="event.stopPropagation(); ${onRemove}('${val.replace(/'/g, "\\'")}')">&#215;</span>`;
-        container.appendChild(chip);
-      });
     }
 
     function toggleAffiliate(val) {
       const idx = state.affiliates.indexOf(val);
       if (idx === -1) state.affiliates.push(val);
       else state.affiliates.splice(idx, 1);
-      renderChips('affiliate', state.affiliates, 'removeAffiliate');
-      buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
-    }
-
-    function removeAffiliate(val) {
-      state.affiliates = state.affiliates.filter(a => a !== val);
-      renderChips('affiliate', state.affiliates, 'removeAffiliate');
+      renderSelectValue('affiliate', state.affiliates, 'All affiliates');
       buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
     }
 
@@ -469,13 +430,7 @@
       const idx = state.products.indexOf(val);
       if (idx === -1) state.products.push(val);
       else state.products.splice(idx, 1);
-      renderChips('product', state.products, 'removeProduct');
-      buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
-    }
-
-    function removeProduct(val) {
-      state.products = state.products.filter(p => p !== val);
-      renderChips('product', state.products, 'removeProduct');
+      renderSelectValue('product', state.products, 'All products');
       buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
     }
 
@@ -545,8 +500,8 @@
     function resetFilters() {
       state = { affiliates: ['347 BETTENDORF'], products: [], status: 'All' };
       applied = { affiliates: ['347 BETTENDORF'], products: [], status: 'All' };
-      renderChips('affiliate', state.affiliates, 'removeAffiliate');
-      renderChips('product', state.products, 'removeProduct');
+      renderSelectValue('affiliate', state.affiliates, 'All affiliates');
+      renderSelectValue('product', state.products, 'All products');
       document.getElementById('status-value').textContent = 'All';
       renderCards();
     }
@@ -644,7 +599,7 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
 
-    renderChips('affiliate', state.affiliates, 'removeAffiliate');
+    renderSelectValue('affiliate', state.affiliates, 'All affiliates');
     renderCards();
   </script>
 
