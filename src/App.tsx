@@ -9,7 +9,8 @@ import Divider from '@mui/material/Divider';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AuthSequencingCardView from './AuthSequencingCardView';
-import AuthSequencingTableR2 from './AuthSequencingTableR2';
+import AuthSequencingTable from './AuthSequencingTable';
+import AuthSequencingTablePlus from './AuthSequencingTablePlus';
 
 const theme = createTheme({
   palette: {
@@ -17,12 +18,13 @@ const theme = createTheme({
   },
 });
 
-type Page = 'home' | 'auth-cards' | 'auth-table-r2';
+type Page = 'home' | 'auth-cards' | 'auth-table' | 'auth-table-plus';
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace('#', '');
   if (hash === 'auth-cards') return 'auth-cards';
-  if (hash === 'auth-table-r2') return 'auth-table-r2';
+  if (hash === 'auth-table') return 'auth-table';
+  if (hash === 'auth-table-plus') return 'auth-table-plus';
   return 'home';
 }
 
@@ -81,10 +83,17 @@ function NavBar({ current, collapsed, onToggle }: { current: Page; collapsed: bo
       </Button>
       <Button
         size="small"
-        variant={current === 'auth-table-r2' ? 'contained' : 'text'}
-        onClick={() => navigate('auth-table-r2')}
+        variant={current === 'auth-table' ? 'contained' : 'text'}
+        onClick={() => navigate('auth-table')}
       >
-        Table R2
+        Table
+      </Button>
+      <Button
+        size="small"
+        variant={current === 'auth-table-plus' ? 'contained' : 'text'}
+        onClick={() => navigate('auth-table-plus')}
+      >
+        Table+
       </Button>
 
       <Box sx={{ ml: 'auto' }}>
@@ -99,8 +108,9 @@ function NavBar({ current, collapsed, onToggle }: { current: Page; collapsed: bo
 type ConceptEntry = { page: Page; label: string };
 
 const CONCEPTS: ConceptEntry[] = [
-  { page: 'auth-cards',     label: 'Cards+' },
-  { page: 'auth-table-r2', label: 'Table R2' },
+  { page: 'auth-cards',      label: 'Cards+' },
+  { page: 'auth-table',      label: 'Table' },
+  { page: 'auth-table-plus', label: 'Table+' },
 ];
 
 function ConceptList({ entries }: { entries: ConceptEntry[] }) {
@@ -162,7 +172,8 @@ function App() {
       <NavBar current={page} collapsed={navCollapsed} onToggle={() => setNavCollapsed((c) => !c)} />
       {page === 'home' && <HomePage />}
       {page === 'auth-cards' && <AuthSequencingCardView />}
-      {page === 'auth-table-r2' && <AuthSequencingTableR2 />}
+      {page === 'auth-table' && <AuthSequencingTable />}
+      {page === 'auth-table-plus' && <AuthSequencingTablePlus />}
     </ThemeProvider>
   );
 }

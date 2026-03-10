@@ -235,6 +235,22 @@ function VolumeBar({ remaining, total }: { remaining: number; total: number }) {
   );
 }
 
+function DateBadge({ endDate, status }: { endDate: string; status: AuthRow['status'] }) {
+  const config = {
+    active:   { bg: '#e8f5e9', color: '#2e7d32' },
+    expiring: { bg: '#fff3e0', color: '#e65100' },
+    expired:  { bg: '#fce4ec', color: '#c62828' },
+  };
+  const { bg, color } = config[status];
+  return (
+    <Chip
+      label={endDate}
+      size="small"
+      sx={{ bgcolor: bg, color, fontWeight: 500, fontSize: '0.75rem', height: 24, borderRadius: '6px' }}
+    />
+  );
+}
+
 function StatusDot({ status }: { status: AuthRow['status'] }) {
   const config = {
     active:   { color: '#4caf50', label: 'Active' },
@@ -257,8 +273,8 @@ function StatusDot({ status }: { status: AuthRow['status'] }) {
 const sharedColumns: GridColDef<AuthRow>[] = [
   {
     field: 'sequence',
-    headerName: '#',
-    width: 50,
+    headerName: 'Sequence #',
+    width: 130,
     type: 'number',
     align: 'center',
     headerAlign: 'center',
@@ -317,8 +333,9 @@ const sharedColumns: GridColDef<AuthRow>[] = [
   {
     field: 'endDate',
     headerName: 'End Date',
-    width: 110,
-    valueFormatter: (value: string) => value === '12/31/2999' ? '∞ No Expiry' : value,
+    width: 130,
+    renderCell: (params: GridRenderCellParams<AuthRow>) =>
+      params.value ? <DateBadge endDate={params.value} status={params.row.status} /> : null,
   },
   {
     field: 'status',
@@ -333,6 +350,7 @@ const gridSx = {
   '& .row-expired':  { bgcolor: 'rgba(244, 67, 54, 0.04)' },
   '& .row-expiring': { bgcolor: 'rgba(255, 152, 0, 0.04)' },
   '& .MuiDataGrid-groupingCriteriaCell': { fontWeight: 600 },
+  '& .MuiDataGrid-cell': { display: 'flex !important', alignItems: 'center !important' },
 };
 
 const getRowClassName = (params: { row: AuthRow }) => {
@@ -342,11 +360,26 @@ const getRowClassName = (params: { row: AuthRow }) => {
 };
 
 // ---------------------------------------------------------------------------
+// Custom footer
+// ---------------------------------------------------------------------------
+
+function GroupCountFooter({ label, count }: { label: string; count: number }) {
+  return (
+    <Box sx={{ px: 2, py: 1, borderTop: 1, borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
+      <Typography variant="caption" color="text.secondary">
+        Total {label}: {count}
+      </Typography>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Grid views
 // ---------------------------------------------------------------------------
 
 function ByLocationView({ rows }: { rows: AuthRow[] }) {
   const apiRef = useGridApiRef();
+  const locationCount = useMemo(() => new Set(rows.map((r) => r.locationId)).size, [rows]);
 
   const columns: GridColDef<AuthRow>[] = [
     {
@@ -380,7 +413,9 @@ function ByLocationView({ rows }: { rows: AuthRow[] }) {
       groupingColDef={{ headerName: 'Location / Product', width: 300, hideDescendantCount: false }}
       getRowClassName={getRowClassName}
       density="compact"
+      getRowHeight={() => 48}
       disableRowSelectionOnClick
+      slots={{ footer: () => <GroupCountFooter label="Locations" count={locationCount} /> }}
       sx={gridSx}
     />
   );
@@ -388,6 +423,7 @@ function ByLocationView({ rows }: { rows: AuthRow[] }) {
 
 function ByProductView({ rows }: { rows: AuthRow[] }) {
   const apiRef = useGridApiRef();
+  const productCount = useMemo(() => new Set(rows.map((r) => r.productCode)).size, [rows]);
 
   const columns: GridColDef<AuthRow>[] = [
     {
@@ -422,7 +458,9 @@ function ByProductView({ rows }: { rows: AuthRow[] }) {
       groupingColDef={{ headerName: 'Product / Location', width: 320, hideDescendantCount: false }}
       getRowClassName={getRowClassName}
       density="compact"
+      getRowHeight={() => 48}
       disableRowSelectionOnClick
+      slots={{ footer: () => <GroupCountFooter label="Products" count={productCount} /> }}
       sx={gridSx}
     />
   );
@@ -435,7 +473,7 @@ function ByProductView({ rows }: { rows: AuthRow[] }) {
 type ViewMode = 'byLocation' | 'byProduct';
 type StatusFilter = 'all' | 'active' | 'expiring' | 'expired';
 
-export default function AuthSequencingTableR2() {
+export default function AuthSequencingTablePlus() {
   const [view, setView] = useState<ViewMode>('byLocation');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
