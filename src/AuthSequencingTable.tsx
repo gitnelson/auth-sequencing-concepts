@@ -511,7 +511,7 @@ export default function AuthSequencingTable() {
             label="Status"
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
           >
-            <MenuItem value="all">All statuses</MenuItem>
+            <MenuItem value="all">All</MenuItem>
             <MenuItem value="active">Active</MenuItem>
             <MenuItem value="expiring">Expiring</MenuItem>
             <MenuItem value="expired">Expired</MenuItem>
