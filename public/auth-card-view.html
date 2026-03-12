@@ -223,9 +223,11 @@
       padding: 1px 0; border-radius: 3px;
       font-size: 10px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap;
     }
-    .seq-chip.active   { background: #e8f5e9; color: #2e7d32; }
-    .seq-chip.expiring { background: #fff3e0; color: #e65100; }
-    .seq-chip.expired  { background: #fce4ec; color: #c62828; }
+    .seq-chip.Self      { background: #f3e5f5; color: #7b1fa2; }
+    .seq-chip.Monthly   { background: #e3f2fd; color: #1565c0; }
+    .seq-chip.Weekly    { background: #fff3e0; color: #e65100; }
+    .seq-chip.Daily     { background: #fce4ec; color: #c62828; }
+    .seq-chip.Unlimited { background: #e8f5e9; color: #2e7d32; }
     .seq-vol { font-size: 11px; color: #888; flex-shrink: 0; white-space: nowrap; min-width: 72px; text-align: right; }
     .not-sequenced-section { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #e0e0e0; }
     .not-sequenced-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #bbb; margin-bottom: 3px; }
@@ -332,78 +334,78 @@
       {
         affiliate: '347 BETTENDORF', product: 'A Premium Unleaded', status: 'allowed',
         suppliers: [
-          { name: '245 Titan Energy Solutions',   authStatus: 'active',   remainingVol: 42000 },
-          { name: '287 Apex Oil & Gas',            authStatus: 'active',   remainingVol: 18500 },
-          { name: '213 Quantum Fuel Services',     authStatus: 'expiring', remainingVol: 7200  },
-          { name: '256 Summit Hydrocarbon Corp',   authStatus: 'active',   remainingVol: null  },
-          { name: '299 Horizon Petroleum Group',   authStatus: 'expired',  remainingVol: 0     },
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 18500 },
+          { name: '213 Quantum Fuel Services',     type: 'Weekly',    remainingVol: 7200  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Daily',     remainingVol: 0     },
         ],
         notSequenced: ['000 Citgo Petroleum Corp', '000 Semifuel LP'],
       },
       {
         affiliate: '347 BETTENDORF', product: 'B Biodiesel Blend', status: 'not-allowed',
         suppliers: [
-          { name: '245 Titan Energy Solutions',   authStatus: 'active',   remainingVol: 42000 },
-          { name: '287 Apex Oil & Gas',            authStatus: 'active',   remainingVol: 18500 },
-          { name: '213 Quantum Fuel Services',     authStatus: 'expiring', remainingVol: 7200  },
-          { name: '256 Summit Hydrocarbon Corp',   authStatus: 'active',   remainingVol: null  },
-          { name: '299 Horizon Petroleum Group',   authStatus: 'expired',  remainingVol: 0     },
-          { name: '300 NovaTech Innovations',      authStatus: 'active',   remainingVol: 31000 },
-          { name: '301 Quantum Dynamics',          authStatus: 'expiring', remainingVol: 2100  },
-          { name: '302 EcoSolutions Corp',         authStatus: 'active',   remainingVol: 9800  },
-          { name: '303 Stellar Ventures',          authStatus: 'expired',  remainingVol: 0     },
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 18500 },
+          { name: '213 Quantum Fuel Services',     type: 'Weekly',    remainingVol: 7200  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Daily',     remainingVol: 0     },
+          { name: '300 NovaTech Innovations',      type: 'Monthly',   remainingVol: 31000 },
+          { name: '301 Quantum Dynamics',          type: 'Weekly',    remainingVol: 2100  },
+          { name: '302 EcoSolutions Corp',         type: 'Daily',     remainingVol: 9800  },
+          { name: '303 Stellar Ventures',          type: 'Monthly',   remainingVol: 6500  },
         ],
       },
       {
         affiliate: '347 BETTENDORF', product: 'E Denatured Fuel Ethanol', status: 'not-allowed',
         suppliers: [
-          { name: '245 Titan Energy Solutions',   authStatus: 'active',   remainingVol: 55000 },
-          { name: '287 Apex Oil & Gas',            authStatus: 'expiring', remainingVol: 4400  },
-          { name: '213 Quantum Fuel Services',     authStatus: 'active',   remainingVol: 12000 },
-          { name: '256 Summit Hydrocarbon Corp',   authStatus: 'active',   remainingVol: null  },
-          { name: '299 Horizon Petroleum Group',   authStatus: 'active',   remainingVol: 28000 },
-          { name: '300 NovaTech Innovations',      authStatus: 'expired',  remainingVol: 0     },
-          { name: '301 Quantum Dynamics',          authStatus: 'active',   remainingVol: 17000 },
-          { name: '302 EcoSolutions Corp',         authStatus: 'expiring', remainingVol: 900   },
-          { name: '303 Stellar Ventures',          authStatus: 'active',   remainingVol: 6500  },
-          { name: '304 Apex Manufacturing',        authStatus: 'active',   remainingVol: null  },
-          { name: '305 Zenith Robotics',           authStatus: 'expired',  remainingVol: 0     },
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Weekly',    remainingVol: 4400  },
+          { name: '213 Quantum Fuel Services',     type: 'Monthly',   remainingVol: 12000 },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Monthly',   remainingVol: 28000 },
+          { name: '300 NovaTech Innovations',      type: 'Daily',     remainingVol: 0     },
+          { name: '301 Quantum Dynamics',          type: 'Monthly',   remainingVol: 17000 },
+          { name: '302 EcoSolutions Corp',         type: 'Weekly',    remainingVol: 900   },
+          { name: '303 Stellar Ventures',          type: 'Daily',     remainingVol: 6500  },
+          { name: '304 Apex Manufacturing',        type: 'Unlimited', remainingVol: null  },
+          { name: '305 Zenith Robotics',           type: 'Daily',     remainingVol: 0     },
         ],
       },
       {
         affiliate: '347 BETTENDORF', product: 'V Sub Octane Unleaded', status: 'allowed',
         suppliers: [
-          { name: '245 Titan Energy Solutions',   authStatus: 'active',   remainingVol: 38000 },
-          { name: '287 Apex Oil & Gas',            authStatus: 'active',   remainingVol: 22000 },
-          { name: '213 Quantum Fuel Services',     authStatus: 'expiring', remainingVol: 3100  },
-          { name: '256 Summit Hydrocarbon Corp',   authStatus: 'active',   remainingVol: null  },
-          { name: '299 Horizon Petroleum Group',   authStatus: 'active',   remainingVol: 14000 },
-          { name: '300 NovaTech Innovations',      authStatus: 'expired',  remainingVol: 0     },
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 22000 },
+          { name: '213 Quantum Fuel Services',     type: 'Weekly',    remainingVol: 3100  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Monthly',   remainingVol: 14000 },
+          { name: '300 NovaTech Innovations',      type: 'Daily',     remainingVol: 0     },
         ],
       },
       {
         affiliate: '347 BETTENDORF', product: 'X ULSD #2 Diesel', status: 'allowed',
         suppliers: [
-          { name: '245 Titan Energy Solutions',   authStatus: 'active',   remainingVol: 71000 },
-          { name: '287 Apex Oil & Gas',            authStatus: 'active',   remainingVol: 34000 },
-          { name: '213 Quantum Fuel Services',     authStatus: 'active',   remainingVol: null  },
-          { name: '256 Summit Hydrocarbon Corp',   authStatus: 'expiring', remainingVol: 5500  },
-          { name: '299 Horizon Petroleum Group',   authStatus: 'active',   remainingVol: 19000 },
-          { name: '300 NovaTech Innovations',      authStatus: 'active',   remainingVol: 8200  },
-          { name: '301 Quantum Dynamics',          authStatus: 'expired',  remainingVol: 0     },
-          { name: '302 EcoSolutions Corp',         authStatus: 'active',   remainingVol: 26000 },
-          { name: '303 Stellar Ventures',          authStatus: 'expiring', remainingVol: 1800  },
-          { name: '304 Apex Manufacturing',        authStatus: 'active',   remainingVol: null  },
-          { name: '305 Zenith Robotics',           authStatus: 'active',   remainingVol: 11000 },
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 34000 },
+          { name: '213 Quantum Fuel Services',     type: 'Unlimited', remainingVol: null  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Weekly',    remainingVol: 5500  },
+          { name: '299 Horizon Petroleum Group',   type: 'Monthly',   remainingVol: 19000 },
+          { name: '300 NovaTech Innovations',      type: 'Daily',     remainingVol: 8200  },
+          { name: '301 Quantum Dynamics',          type: 'Daily',     remainingVol: 0     },
+          { name: '302 EcoSolutions Corp',         type: 'Monthly',   remainingVol: 26000 },
+          { name: '303 Stellar Ventures',          type: 'Weekly',    remainingVol: 1800  },
+          { name: '304 Apex Manufacturing',        type: 'Unlimited', remainingVol: null  },
+          { name: '305 Zenith Robotics',           type: 'Monthly',   remainingVol: 11000 },
         ],
       },
       {
         affiliate: '347 BETTENDORF', product: 'R Regular Unleaded', status: 'allowed',
         suppliers: [
-          { name: '245 Titan Energy Solutions',   authStatus: 'active',   remainingVol: 29000 },
-          { name: '287 Apex Oil & Gas',            authStatus: 'expiring', remainingVol: 6300  },
-          { name: '213 Quantum Fuel Services',     authStatus: 'active',   remainingVol: null  },
-          { name: '256 Summit Hydrocarbon Corp',   authStatus: 'active',   remainingVol: 47000 },
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Weekly',    remainingVol: 6300  },
+          { name: '213 Quantum Fuel Services',     type: 'Unlimited', remainingVol: null  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Monthly',   remainingVol: 47000 },
         ],
         notSequenced: ['000 Citgo Petroleum Corp'],
       },
@@ -411,63 +413,63 @@
       {
         affiliate: '201 DES MOINES', product: 'A Premium Unleaded', status: 'allowed',
         suppliers: [
-          { name: '201 Lancer Energy Corp',   authStatus: 'active',   remainingVol: null  },
-          { name: '230 Thornfield Petroleum', authStatus: 'active',   remainingVol: 19000 },
-          { name: '136 Baxter Energy Group',  authStatus: 'expiring', remainingVol: 0     },
+          { name: '201 Lancer Energy Corp',   type: 'Self',    remainingVol: null  },
+          { name: '230 Thornfield Petroleum', type: 'Monthly', remainingVol: 19000 },
+          { name: '136 Baxter Energy Group',  type: 'Weekly',  remainingVol: 0     },
         ],
       },
       {
         affiliate: '201 DES MOINES', product: 'E Denatured Fuel Ethanol', status: 'allowed',
         suppliers: [
-          { name: '201 Lancer Energy Corp',      authStatus: 'active',   remainingVol: null  },
-          { name: '230 Thornfield Petroleum',    authStatus: 'active',   remainingVol: null  },
-          { name: '263 Foxridge Supply Group',   authStatus: 'active',   remainingVol: 3000  },
-          { name: '136 Baxter Energy Group',     authStatus: 'expiring', remainingVol: 15000 },
-          { name: '160 Questmark Energy',        authStatus: 'active',   remainingVol: 5000  },
+          { name: '201 Lancer Energy Corp',      type: 'Self',      remainingVol: null  },
+          { name: '230 Thornfield Petroleum',    type: 'Unlimited', remainingVol: null  },
+          { name: '263 Foxridge Supply Group',   type: 'Daily',     remainingVol: 3000  },
+          { name: '136 Baxter Energy Group',     type: 'Weekly',    remainingVol: 15000 },
+          { name: '160 Questmark Energy',        type: 'Monthly',   remainingVol: 5000  },
         ],
       },
       {
         affiliate: '201 DES MOINES', product: 'V Sub Octane Unleaded', status: 'not-allowed',
         suppliers: [
-          { name: '201 Lancer Energy Corp',    authStatus: 'active',  remainingVol: null  },
-          { name: '263 Foxridge Supply Group', authStatus: 'expired', remainingVol: 0     },
+          { name: '201 Lancer Energy Corp',    type: 'Self',      remainingVol: null },
+          { name: '263 Foxridge Supply Group', type: 'Daily',     remainingVol: 0    },
         ],
       },
       {
         affiliate: '201 DES MOINES', product: 'X ULSD #2 Diesel', status: 'allowed',
         suppliers: [
-          { name: '201 Lancer Energy Corp',    authStatus: 'active',   remainingVol: null  },
-          { name: '230 Thornfield Petroleum',  authStatus: 'active',   remainingVol: 20000 },
-          { name: '263 Foxridge Supply Group', authStatus: 'active',   remainingVol: null  },
-          { name: '136 Baxter Energy Group',   authStatus: 'expiring', remainingVol: 2400  },
-          { name: '160 Questmark Energy',      authStatus: 'active',   remainingVol: null  },
-          { name: '311 Prairie Fuel Co',       authStatus: 'active',   remainingVol: 13000 },
-          { name: '402 Midland Energy',        authStatus: 'expired',  remainingVol: 0     },
+          { name: '201 Lancer Energy Corp',    type: 'Self',      remainingVol: null  },
+          { name: '230 Thornfield Petroleum',  type: 'Monthly',   remainingVol: 20000 },
+          { name: '263 Foxridge Supply Group', type: 'Unlimited', remainingVol: null  },
+          { name: '136 Baxter Energy Group',   type: 'Weekly',    remainingVol: 2400  },
+          { name: '160 Questmark Energy',      type: 'Unlimited', remainingVol: null  },
+          { name: '311 Prairie Fuel Co',       type: 'Monthly',   remainingVol: 13000 },
+          { name: '402 Midland Energy',        type: 'Daily',     remainingVol: 0     },
         ],
       },
       // ── 207 MASON CITY ──
       {
         affiliate: '207 MASON CITY', product: 'A Premium Unleaded', status: 'allowed',
         suppliers: [
-          { name: '412 Northstar Fuel',          authStatus: 'active',   remainingVol: null  },
-          { name: '287 Apex Oil & Gas',           authStatus: 'active',   remainingVol: 33000 },
-          { name: '213 Quantum Fuel Services',    authStatus: 'expiring', remainingVol: 4700  },
-          { name: '256 Summit Hydrocarbon Corp',  authStatus: 'active',   remainingVol: 21000 },
+          { name: '412 Northstar Fuel',          type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',           type: 'Monthly',   remainingVol: 33000 },
+          { name: '213 Quantum Fuel Services',    type: 'Weekly',    remainingVol: 4700  },
+          { name: '256 Summit Hydrocarbon Corp',  type: 'Monthly',   remainingVol: 21000 },
         ],
       },
       {
         affiliate: '207 MASON CITY', product: 'E Denatured Fuel Ethanol', status: 'not-allowed',
         suppliers: [
-          { name: '412 Northstar Fuel',        authStatus: 'active',  remainingVol: null  },
-          { name: '230 Thornfield Petroleum',  authStatus: 'expired', remainingVol: 0     },
-          { name: '263 Foxridge Supply Group', authStatus: 'active',  remainingVol: 8100  },
+          { name: '412 Northstar Fuel',        type: 'Self',      remainingVol: null },
+          { name: '230 Thornfield Petroleum',  type: 'Daily',     remainingVol: 0    },
+          { name: '263 Foxridge Supply Group', type: 'Daily',     remainingVol: 8100 },
         ],
       },
       {
         affiliate: '207 MASON CITY', product: 'R Regular Unleaded', status: 'allowed',
         suppliers: [
-          { name: '412 Northstar Fuel',  authStatus: 'active',   remainingVol: null  },
-          { name: '287 Apex Oil & Gas',  authStatus: 'expiring', remainingVol: 1500  },
+          { name: '412 Northstar Fuel',  type: 'Self',    remainingVol: null },
+          { name: '287 Apex Oil & Gas',  type: 'Weekly',  remainingVol: 1500 },
         ],
         notSequenced: ['000 Citgo Petroleum Corp'],
       },
@@ -660,12 +662,12 @@
       const div = document.createElement('div');
       div.className = 'product-card';
       const badgeLabel = card.status === 'allowed' ? 'Allowed' : 'Not Allowed';
-      const chipLabel = { active: 'Active', expiring: 'Expiring', expired: 'Expired' };
       const suppliersHtml = card.suppliers.map((s, i) => {
-        const vol = s.remainingVol === null ? '—' : s.remainingVol.toLocaleString() + ' gal';
+        const noVol = s.type === 'Self' || s.type === 'Unlimited';
+        const vol = noVol || s.remainingVol === null ? '—' : s.remainingVol.toLocaleString() + ' gal';
         return `<li>
           <span class="seq-num">${i + 1}</span>
-          <span class="seq-chip ${s.authStatus}">${chipLabel[s.authStatus]}</span>
+          <span class="seq-chip ${s.type}">${s.type}</span>
           <span class="seq-supplier${i === 0 ? ' primary' : ''}">${s.name}</span>
           <span class="seq-vol">${vol}</span>
         </li>`;

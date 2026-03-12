@@ -9,7 +9,6 @@ import InputLabel from '@mui/material/InputLabel';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
-import LinearProgress from '@mui/material/LinearProgress';
 import Tooltip from '@mui/material/Tooltip';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchIcon from '@mui/icons-material/Search';
@@ -200,25 +199,6 @@ function TypeChip({ value }: { value: string }) {
   );
 }
 
-function VolumeBar({ remaining, total }: { remaining: number; total: number }) {
-  const pct = total > 0 ? (remaining / total) * 100 : 0;
-  const color = pct <= 10 ? 'error' : pct <= 25 ? 'warning' : 'primary';
-  return (
-    <Tooltip title={`${remaining.toLocaleString()} / ${total.toLocaleString()} gal (${Math.round(pct)}%)`}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-        <LinearProgress
-          variant="determinate"
-          value={pct}
-          color={color}
-          sx={{ flex: 1, height: 8, borderRadius: 4 }}
-        />
-        <Typography variant="caption" sx={{ minWidth: 36, textAlign: 'right', color: 'text.secondary' }}>
-          {Math.round(pct)}%
-        </Typography>
-      </Box>
-    </Tooltip>
-  );
-}
 
 function DateBadge({ endDate, status }: { endDate: string; status: AuthRow['status'] }) {
   const config = {
@@ -354,10 +334,14 @@ const sharedColumns: GridColDef<AuthRow>[] = [
   {
     field: 'remainingVol',
     headerName: 'Remaining',
-    width: 170,
+    width: 130,
     renderCell: (params: GridRenderCellParams<AuthRow>) => {
-      if (params.row.remainingVol == null || params.row.authVol == null) return '—';
-      return <VolumeBar remaining={params.row.remainingVol} total={params.row.authVol} />;
+      if (params.row.remainingVol == null) return '—';
+      return (
+        <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+          {params.row.remainingVol.toLocaleString()} gal
+        </Typography>
+      );
     },
   },
   {
