@@ -248,6 +248,36 @@
     .seq-chip.Unlimited { background: #e8f5e9; color: #2e7d32; }
     .seq-vol { font-size: 11px; color: #888; flex-shrink: 0; white-space: nowrap; min-width: 72px; text-align: right; }
 
+    /* ── Drop wipe animation ── */
+    .sequence-list li { position: relative; overflow: hidden; }
+
+    @keyframes wipe-sweep {
+      0%   { transform: translateX(-101%); }
+      100% { transform: translateX(110%); }
+    }
+
+    .drop-wipe-bar {
+      position: absolute;
+      inset: 0;
+      background: #43a047;
+      transform: translateX(-101%);
+      pointer-events: none;
+      z-index: 2;
+      animation: wipe-sweep 0.27s cubic-bezier(0.25, 0, 0.5, 1) forwards;
+    }
+
+    @keyframes check-hold-fade {
+      0%, 60% { opacity: 1; }
+      100%     { opacity: 0; }
+    }
+
+    .seq-check {
+      color: #43a047;
+      font-size: 13px;
+      flex-shrink: 0;
+      animation: check-hold-fade 5s forwards;
+    }
+
     /* ── Not Sequenced ── */
     .not-sequenced-section { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #e0e0e0; }
     .not-sequenced-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #bbb; margin-bottom: 3px; }
@@ -698,7 +728,31 @@
       const suppliers = cards[cardIdx].suppliers;
       const [moved] = suppliers.splice(dragSupplierIdx, 1);
       suppliers.splice(targetIdx, 0, moved);
+      const finalIdx = suppliers.indexOf(moved);
       renderCards();
+      // Flash wipe on the dropped row
+      requestAnimationFrame(() => {
+        const li = document.querySelector(
+          `li[data-card-idx="${cardIdx}"][data-supplier-idx="${finalIdx}"]`
+        );
+        if (!li) return;
+        li.style.background = '#fff';
+        const bar = document.createElement('div');
+        bar.className = 'drop-wipe-bar';
+        li.appendChild(bar);
+        bar.addEventListener('animationend', () => {
+          bar.remove();
+          li.style.background = '';
+          const nameEl = li.querySelector('.seq-supplier');
+          if (nameEl) {
+            const check = document.createElement('span');
+            check.className = 'seq-check';
+            check.textContent = '✔';
+            nameEl.insertAdjacentElement('afterend', check);
+            check.addEventListener('animationend', () => check.remove(), { once: true });
+          }
+        }, { once: true });
+      });
     }
 
     function handleDragEnd(e) {
@@ -713,6 +767,8 @@
     function buildSupplierRow(s, i, cardIdx) {
       const li = document.createElement('li');
       li.draggable = true;
+      li.dataset.cardIdx = cardIdx;
+      li.dataset.supplierIdx = i;
 
       // Drag handle
       const handle = document.createElement('span');
