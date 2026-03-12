@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth Sequencing — Cards++</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Top Nav ── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      height: 48px;
+      background: #e0e0e0;
+      padding: 0 16px;
+      border-bottom: 1px solid #ccc;
+      gap: 24px;
+    }
+    .top-nav .logo { font-weight: 700; font-size: 15px; color: #555; letter-spacing: 1px; }
+    .top-nav .breadcrumb { font-size: 13px; color: #777; }
+    .top-nav .breadcrumb span { color: #444; font-weight: 600; }
+
+    /* ── Main Layout ── */
+    .app-shell { background: #fff; min-height: calc(100vh - 48px); display: flex; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      border-right: 1px solid #ddd;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 14px;
+    }
+    .sidebar-title { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 2px; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
+    .filter-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* ── MUI-style Multi-Select ── */
+    .select-control {
+      border: 1px solid #c4c4c4;
+      border-radius: 4px;
+      padding: 7px 30px 7px 10px;
+      height: 38px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      background: #fff;
+      position: relative;
+      transition: border-color 0.1s;
+      user-select: none;
+    }
+    .select-control:hover { border-color: #333; }
+    .select-control.open { border-color: #1976d2; border-width: 2px; padding: 6px 29px 6px 9px; }
+    .select-arrow {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: #666;
+      pointer-events: none;
+      transition: transform 0.15s;
+    }
+    .select-control.open .select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .select-value { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .select-placeholder { font-size: 13px; color: #aaa; }
+
+    .select-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      z-index: 1000;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #333;
+    }
+    .select-option:hover { background: rgba(25,118,210,0.06); }
+    .select-option input[type="checkbox"] { accent-color: #1976d2; cursor: pointer; flex-shrink: 0; }
+
+    /* ── Single Select (Status) ── */
+    .single-select-control {
+      border: 1px solid #c4c4c4;
+      border-radius: 4px;
+      padding: 7px 30px 7px 10px;
+      height: 38px;
+      cursor: pointer;
+      background: #fff;
+      position: relative;
+      font-size: 13px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      user-select: none;
+      transition: border-color 0.1s;
+    }
+    .single-select-control:hover { border-color: #333; }
+    .single-select-control.open { border-color: #1976d2; border-width: 2px; padding: 6px 29px 6px 9px; }
+    .single-select-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      z-index: 1000;
+    }
+    .single-option {
+      padding: 9px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #333;
+    }
+    .single-option:hover { background: rgba(25,118,210,0.06); }
+    .single-option.selected { background: rgba(25,118,210,0.10); color: #1565c0; font-weight: 500; }
+
+    /* ── Sidebar Actions ── */
+    .sidebar-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+    .btn-search {
+      padding: 7px 18px; font-size: 13px; font-weight: 500;
+      border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #555; cursor: pointer;
+    }
+    .btn-search:hover { background: #f5f5f5; }
+    .btn-reset { font-size: 13px; color: #1976d2; background: none; border: none; cursor: pointer; font-weight: 500; }
+    .btn-reset:hover { text-decoration: underline; }
+
+    /* ── Content Area ── */
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow: auto; }
+    .content-header { padding: 16px 24px 0; border-bottom: 1px solid #e0e0e0; }
+    .content-header h1 { font-size: 20px; font-weight: 700; color: #333; margin-bottom: 12px; }
+    .content-toolbar { display: flex; align-items: flex-end; justify-content: space-between; }
+
+    .tabs { display: flex; gap: 0; }
+    .tab {
+      padding: 8px 16px; font-size: 13px; font-weight: 500; color: #888;
+      border: none; border-bottom: 2px solid transparent; background: none; cursor: pointer; margin-bottom: -1px;
+    }
+    .tab.active { color: #1976d2; border-bottom: 2px solid #1976d2; font-weight: 600; }
+    .tab .count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; border-radius: 10px;
+      background: #e3f2fd; color: #1976d2; font-size: 11px; font-weight: 700; margin-left: 6px; padding: 0 5px;
+    }
+    .tab:not(.active) .count { background: #eee; color: #888; }
+
+    .toolbar-actions { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; }
+    .btn-wizard {
+      padding: 6px 14px; font-size: 13px; border: 1px solid #888;
+      border-radius: 4px; background: #f0f0f0; color: #333; cursor: pointer; font-weight: 600;
+    }
+
+    /* ── Location Group ── */
+    .location-group { padding: 20px 24px 0; }
+    .location-group-header { font-size: 20px; font-weight: 700; color: #333; margin-bottom: 14px; }
+    .location-group + .location-group { border-top: 2px solid #e0e0e0; margin-top: 8px; }
+
+    /* ── Card Grid ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding-bottom: 18px;
+      align-content: start;
+      align-items: start;
+    }
+
+    /* ── Product Card ── */
+    .product-card { border: 1px solid #ddd; border-radius: 6px; background: #fff; overflow: hidden; }
+    .card-header {
+      padding: 12px 14px 8px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 8px; border-radius: 6px 6px 0 0;
+    }
+    .card-header.allowed { background: #fff; }
+    .card-header.not-allowed { background: #fce4ec; }
+    .product-name { font-size: 14px; font-weight: 700; color: #333; line-height: 1.3; }
+    .status-badge {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px;
+      white-space: nowrap; flex-shrink: 0; border: 1px solid transparent;
+    }
+    .status-badge.allowed { color: #2e7d4f; background: #fff; border-color: #2e7d4f; }
+    .status-badge.not-allowed { color: #c0392b; border-color: #f5a8a8; background: #fff; }
+
+    .sequence-section { padding: 8px 14px 12px; }
+    .sequence-list { list-style: none; }
+
+    /* ── Supplier Row ── */
+    .sequence-list li {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 0; font-size: 12px;
+      border-top: 2px solid transparent;
+      transition: border-color 0.1s;
+    }
+    .sequence-list li.drag-over { border-top-color: #1976d2; }
+    .sequence-list li.dragging { opacity: 0.35; }
+
+    .drag-handle {
+      cursor: grab;
+      color: #ccc;
+      font-size: 13px;
+      flex-shrink: 0;
+      user-select: none;
+      line-height: 1;
+      padding: 0 1px;
+    }
+    .drag-handle:hover { color: #999; }
+    .drag-handle:active { cursor: grabbing; }
+
+    .seq-num { font-size: 12px; font-weight: 700; color: #aaa; min-width: 14px; flex-shrink: 0; }
+    .seq-supplier { color: #444; line-height: 1.3; flex: 1; min-width: 0; }
+    .seq-supplier.primary { font-weight: 700; color: #333; }
+    .seq-chip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 62px; flex-shrink: 0;
+      padding: 1px 0; border-radius: 3px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap;
+    }
+    .seq-chip.Self      { background: #f3e5f5; color: #7b1fa2; }
+    .seq-chip.Monthly   { background: #e3f2fd; color: #1565c0; }
+    .seq-chip.Weekly    { background: #fff3e0; color: #e65100; }
+    .seq-chip.Daily     { background: #fce4ec; color: #c62828; }
+    .seq-chip.Unlimited { background: #e8f5e9; color: #2e7d32; }
+    .seq-vol { font-size: 11px; color: #888; flex-shrink: 0; white-space: nowrap; min-width: 72px; text-align: right; }
+
+    /* ── Drop wipe animation ── */
+    .sequence-list li { position: relative; overflow: hidden; }
+
+    @keyframes wipe-sweep {
+      0%   { transform: translateX(-101%); }
+      100% { transform: translateX(110%); }
+    }
+
+    .drop-wipe-bar {
+      position: absolute;
+      inset: 0;
+      background: #43a047;
+      transform: translateX(-101%);
+      pointer-events: none;
+      z-index: 2;
+      animation: wipe-sweep 0.27s cubic-bezier(0.25, 0, 0.5, 1) forwards;
+    }
+
+    @keyframes check-hold-fade {
+      0%, 60% { opacity: 1; }
+      100%     { opacity: 0; }
+    }
+
+    .seq-check {
+      color: #43a047;
+      font-size: 13px;
+      flex-shrink: 0;
+      animation: check-hold-fade 5s forwards;
+    }
+
+    /* ── Not Sequenced ── */
+    .not-sequenced-section { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #e0e0e0; }
+    .not-sequenced-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #bbb; margin-bottom: 3px; }
+    .not-sequenced-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 2px 0;
+    }
+    .not-sequenced-name { font-size: 11px; color: #bbb; font-style: italic; }
+    .btn-add-seq {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid #ccc; background: #fff;
+      color: #999; font-size: 14px; font-weight: 400;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1; padding: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .btn-add-seq:hover { border-color: #4caf50; color: #2e7d32; background: #e8f5e9; }
+
+    .card-footer { padding: 8px 14px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
+    .btn-edit { padding: 4px 14px; font-size: 12px; font-weight: 600; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #555; cursor: pointer; }
+    .btn-edit:hover { background: #f5f5f5; }
+
+    .no-results { padding: 48px 24px; text-align: center; color: #aaa; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <div class="logo">SWIFT</div>
+    <div class="breadcrumb">Loading &rsaquo; <span>Auth Sequencing</span></div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-title">Filters</div>
+
+      <div class="filter-group" id="affiliate-group">
+        <div class="filter-label">Location</div>
+        <div class="select-control" id="affiliate-control" onclick="toggleDropdown('affiliate')">
+          <span id="affiliate-value" class="select-placeholder">All affiliates</span>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+        <div class="select-dropdown" id="affiliate-dropdown" style="display:none"></div>
+      </div>
+
+      <div class="filter-group" id="product-group">
+        <div class="filter-label">Product</div>
+        <div class="select-control" id="product-control" onclick="toggleDropdown('product')">
+          <span id="product-value" class="select-placeholder">All products</span>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+        <div class="select-dropdown" id="product-dropdown" style="display:none"></div>
+      </div>
+
+      <div class="filter-group" id="status-group">
+        <div class="filter-label">Status</div>
+        <div class="single-select-control" id="status-control" onclick="toggleDropdown('status')">
+          <span id="status-value">All</span>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+        <div class="single-select-dropdown" id="status-dropdown" style="display:none"></div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button class="btn-search" onclick="applyFilters()">Search</button>
+        <button class="btn-reset" onclick="resetFilters()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <div class="content-header">
+        <h1 id="content-title">347 BETTENDORF</h1>
+        <div class="content-toolbar">
+          <div class="tabs">
+            <div class="tab active">Base Products<span class="count" id="base-count">6</span></div>
+            <div class="tab">Custom Products<span class="count">13</span></div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn-wizard">Launch Sequencing Wizard</button>
+          </div>
+        </div>
+      </div>
+      <div id="cards-container"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Static Reference Data ────────────────────────────────────────────────
+
+    const AFFILIATES = [
+      '201 DES MOINES',
+      '207 MASON CITY',
+      '214 DAVENPORT',
+      '301 DUBUQUE',
+      '332 CEDAR RAPIDS',
+      '347 BETTENDORF',
+      '401 WATERLOO',
+    ];
+
+    const PRODUCTS = [
+      'A Premium Unleaded',
+      'B Biodiesel Blend',
+      'E Denatured Fuel Ethanol',
+      'R Regular Unleaded',
+      'V Sub Octane Unleaded',
+      'X ULSD #2 Diesel',
+    ];
+
+    const STATUS_OPTIONS = ['All', 'Allowed', 'Not Allowed'];
+
+    // ── Card Data (mutable — drag/add mutates this) ──────────────────────────
+
+    const SEED_CARDS = [
+      // ── 347 BETTENDORF ──
+      {
+        affiliate: '347 BETTENDORF', product: 'A Premium Unleaded', status: 'allowed',
+        suppliers: [
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 18500 },
+          { name: '213 Quantum Fuel Services',     type: 'Weekly',    remainingVol: 7200  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Daily',     remainingVol: 0     },
+        ],
+        notSequenced: ['000 Citgo Petroleum Corp', '000 Semifuel LP'],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'B Biodiesel Blend', status: 'not-allowed',
+        suppliers: [
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 18500 },
+          { name: '213 Quantum Fuel Services',     type: 'Weekly',    remainingVol: 7200  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Daily',     remainingVol: 0     },
+          { name: '300 NovaTech Innovations',      type: 'Monthly',   remainingVol: 31000 },
+          { name: '301 Quantum Dynamics',          type: 'Weekly',    remainingVol: 2100  },
+          { name: '302 EcoSolutions Corp',         type: 'Daily',     remainingVol: 9800  },
+          { name: '303 Stellar Ventures',          type: 'Monthly',   remainingVol: 6500  },
+        ],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'E Denatured Fuel Ethanol', status: 'not-allowed',
+        suppliers: [
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Weekly',    remainingVol: 4400  },
+          { name: '213 Quantum Fuel Services',     type: 'Monthly',   remainingVol: 12000 },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Monthly',   remainingVol: 28000 },
+          { name: '300 NovaTech Innovations',      type: 'Daily',     remainingVol: 0     },
+          { name: '301 Quantum Dynamics',          type: 'Monthly',   remainingVol: 17000 },
+          { name: '302 EcoSolutions Corp',         type: 'Weekly',    remainingVol: 900   },
+          { name: '303 Stellar Ventures',          type: 'Daily',     remainingVol: 6500  },
+          { name: '304 Apex Manufacturing',        type: 'Unlimited', remainingVol: null  },
+          { name: '305 Zenith Robotics',           type: 'Daily',     remainingVol: 0     },
+        ],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'V Sub Octane Unleaded', status: 'allowed',
+        suppliers: [
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 22000 },
+          { name: '213 Quantum Fuel Services',     type: 'Weekly',    remainingVol: 3100  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Unlimited', remainingVol: null  },
+          { name: '299 Horizon Petroleum Group',   type: 'Monthly',   remainingVol: 14000 },
+          { name: '300 NovaTech Innovations',      type: 'Daily',     remainingVol: 0     },
+        ],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'X ULSD #2 Diesel', status: 'allowed',
+        suppliers: [
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Monthly',   remainingVol: 34000 },
+          { name: '213 Quantum Fuel Services',     type: 'Unlimited', remainingVol: null  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Weekly',    remainingVol: 5500  },
+          { name: '299 Horizon Petroleum Group',   type: 'Monthly',   remainingVol: 19000 },
+          { name: '300 NovaTech Innovations',      type: 'Daily',     remainingVol: 8200  },
+          { name: '301 Quantum Dynamics',          type: 'Daily',     remainingVol: 0     },
+          { name: '302 EcoSolutions Corp',         type: 'Monthly',   remainingVol: 26000 },
+          { name: '303 Stellar Ventures',          type: 'Weekly',    remainingVol: 1800  },
+          { name: '304 Apex Manufacturing',        type: 'Unlimited', remainingVol: null  },
+          { name: '305 Zenith Robotics',           type: 'Monthly',   remainingVol: 11000 },
+        ],
+      },
+      {
+        affiliate: '347 BETTENDORF', product: 'R Regular Unleaded', status: 'allowed',
+        suppliers: [
+          { name: '245 Titan Energy Solutions',   type: 'Self',      remainingVol: null  },
+          { name: '287 Apex Oil & Gas',            type: 'Weekly',    remainingVol: 6300  },
+          { name: '213 Quantum Fuel Services',     type: 'Unlimited', remainingVol: null  },
+          { name: '256 Summit Hydrocarbon Corp',   type: 'Monthly',   remainingVol: 47000 },
+        ],
+        notSequenced: ['000 Citgo Petroleum Corp'],
+      },
+      // ── 201 DES MOINES ──
+      {
+        affiliate: '201 DES MOINES', product: 'A Premium Unleaded', status: 'allowed',
+        suppliers: [
+          { name: '201 Lancer Energy Corp',   type: 'Self',    remainingVol: null  },
+          { name: '230 Thornfield Petroleum', type: 'Monthly', remainingVol: 19000 },
+          { name: '136 Baxter Energy Group',  type: 'Weekly',  remainingVol: 0     },
+        ],
+      },
+      {
+        affiliate: '201 DES MOINES', product: 'E Denatured Fuel Ethanol', status: 'allowed',
+        suppliers: [
+          { name: '201 Lancer Energy Corp',      type: 'Self',      remainingVol: null  },
+          { name: '230 Thornfield Petroleum',    type: 'Unlimited', remainingVol: null  },
+          { name: '263 Foxridge Supply Group',   type: 'Daily',     remainingVol: 3000  },
+          { name: '136 Baxter Energy Group',     type: 'Weekly',    remainingVol: 15000 },
+          { name: '160 Questmark Energy',        type: 'Monthly',   remainingVol: 5000  },
+        ],
+      },
+      {
+        affiliate: '201 DES MOINES', product: 'V Sub Octane Unleaded', status: 'not-allowed',
+        suppliers: [
+          { name: '201 Lancer Energy Corp',    type: 'Self',  remainingVol: null },
+          { name: '263 Foxridge Supply Group', type: 'Daily', remainingVol: 0    },
+        ],
+      },
+      {
+        affiliate: '201 DES MOINES', product: 'X ULSD #2 Diesel', status: 'allowed',
+        suppliers: [
+          { name: '201 Lancer Energy Corp',    type: 'Self',      remainingVol: null  },
+          { name: '230 Thornfield Petroleum',  type: 'Monthly',   remainingVol: 20000 },
+          { name: '263 Foxridge Supply Group', type: 'Unlimited', remainingVol: null  },
+          { name: '136 Baxter Energy Group',   type: 'Weekly',    remainingVol: 2400  },
+          { name: '160 Questmark Energy',      type: 'Unlimited', remainingVol: null  },
+          { name: '311 Prairie Fuel Co',       type: 'Monthly',   remainingVol: 13000 },
+          { name: '402 Midland Energy',        type: 'Daily',     remainingVol: 0     },
+        ],
+      },
+      // ── 207 MASON CITY ──
+      {
+        affiliate: '207 MASON CITY', product: 'A Premium Unleaded', status: 'allowed',
+        suppliers: [
+          { name: '412 Northstar Fuel',          type: 'Self',    remainingVol: null  },
+          { name: '287 Apex Oil & Gas',           type: 'Monthly', remainingVol: 33000 },
+          { name: '213 Quantum Fuel Services',    type: 'Weekly',  remainingVol: 4700  },
+          { name: '256 Summit Hydrocarbon Corp',  type: 'Monthly', remainingVol: 21000 },
+        ],
+      },
+      {
+        affiliate: '207 MASON CITY', product: 'E Denatured Fuel Ethanol', status: 'not-allowed',
+        suppliers: [
+          { name: '412 Northstar Fuel',        type: 'Self',  remainingVol: null },
+          { name: '230 Thornfield Petroleum',  type: 'Daily', remainingVol: 0    },
+          { name: '263 Foxridge Supply Group', type: 'Daily', remainingVol: 8100 },
+        ],
+      },
+      {
+        affiliate: '207 MASON CITY', product: 'R Regular Unleaded', status: 'allowed',
+        suppliers: [
+          { name: '412 Northstar Fuel',  type: 'Self',   remainingVol: null },
+          { name: '287 Apex Oil & Gas',  type: 'Weekly', remainingVol: 1500 },
+        ],
+        notSequenced: ['000 Citgo Petroleum Corp'],
+      },
+    ];
+
+    // Deep copy so mutations don't affect seed
+    let cards = JSON.parse(JSON.stringify(SEED_CARDS));
+
+    // ── Drag State ───────────────────────────────────────────────────────────
+
+    let dragCardIdx = null;
+    let dragSupplierIdx = null;
+    let dragOverEl = null;
+
+    // ── Filter State ────────────────────────────────────────────────────────
+
+    let state = {
+      affiliates: ['347 BETTENDORF'],
+      products: [],
+      status: 'All',
+    };
+    let applied = { ...state, affiliates: [...state.affiliates], products: [...state.products] };
+    let openDropdown = null;
+
+    // ── Multi-select ─────────────────────────────────────────────────────────
+
+    function buildMultiDropdown(id, options, getSelected, onToggle) {
+      const el = document.getElementById(id + '-dropdown');
+      el.innerHTML = '';
+      options.forEach(opt => {
+        const selected = getSelected().includes(opt);
+        const div = document.createElement('div');
+        div.className = 'select-option' + (selected ? ' selected' : '');
+        div.innerHTML = `<input type="checkbox" ${selected ? 'checked' : ''} onclick="event.stopPropagation()"> <span>${opt}</span>`;
+        div.addEventListener('click', (e) => { e.stopPropagation(); onToggle(opt); });
+        el.appendChild(div);
+      });
+    }
+
+    function renderSelectValue(id, selected, placeholder) {
+      const el = document.getElementById(id + '-value');
+      if (selected.length === 0) {
+        el.textContent = placeholder;
+        el.className = 'select-placeholder';
+      } else if (selected.length === 1) {
+        el.textContent = selected[0];
+        el.className = 'select-value';
+      } else {
+        el.textContent = selected.length + ' selected';
+        el.className = 'select-value';
+      }
+    }
+
+    function toggleAffiliate(val) {
+      const idx = state.affiliates.indexOf(val);
+      if (idx === -1) state.affiliates.push(val);
+      else state.affiliates.splice(idx, 1);
+      renderSelectValue('affiliate', state.affiliates, 'All affiliates');
+      buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
+    }
+
+    function toggleProduct(val) {
+      const idx = state.products.indexOf(val);
+      if (idx === -1) state.products.push(val);
+      else state.products.splice(idx, 1);
+      renderSelectValue('product', state.products, 'All products');
+      buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
+    }
+
+    function buildStatusDropdown() {
+      const el = document.getElementById('status-dropdown');
+      el.innerHTML = '';
+      STATUS_OPTIONS.forEach(opt => {
+        const div = document.createElement('div');
+        div.className = 'single-option' + (state.status === opt ? ' selected' : '');
+        div.textContent = opt;
+        div.addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.status = opt;
+          document.getElementById('status-value').textContent = opt;
+          closeAllDropdowns();
+        });
+        el.appendChild(div);
+      });
+    }
+
+    function toggleDropdown(id) {
+      if (openDropdown === id) { closeAllDropdowns(); return; }
+      closeAllDropdowns();
+      openDropdown = id;
+      if (id === 'affiliate') {
+        buildMultiDropdown('affiliate', AFFILIATES, () => state.affiliates, toggleAffiliate);
+        document.getElementById('affiliate-dropdown').style.display = '';
+        document.getElementById('affiliate-control').classList.add('open');
+      } else if (id === 'product') {
+        buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
+        document.getElementById('product-dropdown').style.display = '';
+        document.getElementById('product-control').classList.add('open');
+      } else if (id === 'status') {
+        buildStatusDropdown();
+        document.getElementById('status-dropdown').style.display = '';
+        document.getElementById('status-control').classList.add('open');
+      }
+    }
+
+    function closeAllDropdowns() {
+      openDropdown = null;
+      ['affiliate', 'product'].forEach(id => {
+        document.getElementById(id + '-dropdown').style.display = 'none';
+        document.getElementById(id + '-control').classList.remove('open');
+      });
+      document.getElementById('status-dropdown').style.display = 'none';
+      document.getElementById('status-control').classList.remove('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.filter-group')) closeAllDropdowns();
+    });
+
+    // ── Filtering ────────────────────────────────────────────────────────────
+
+    function applyFilters() {
+      applied = { affiliates: [...state.affiliates], products: [...state.products], status: state.status };
+      renderCards();
+    }
+
+    function resetFilters() {
+      state = { affiliates: ['347 BETTENDORF'], products: [], status: 'All' };
+      applied = { affiliates: ['347 BETTENDORF'], products: [], status: 'All' };
+      renderSelectValue('affiliate', state.affiliates, 'All affiliates');
+      renderSelectValue('product', state.products, 'All products');
+      document.getElementById('status-value').textContent = 'All';
+      renderCards();
+    }
+
+    function getFilteredIndices() {
+      return cards
+        .map((card, i) => ({ card, i }))
+        .filter(({ card }) => {
+          const affiliateMatch = applied.affiliates.length === 0 || applied.affiliates.includes(card.affiliate);
+          const productMatch   = applied.products.length === 0   || applied.products.includes(card.product);
+          const statusMatch    = applied.status === 'All' ||
+            (applied.status === 'Allowed'     && card.status === 'allowed') ||
+            (applied.status === 'Not Allowed' && card.status === 'not-allowed');
+          return affiliateMatch && productMatch && statusMatch;
+        });
+    }
+
+    // ── Add to Sequence ──────────────────────────────────────────────────────
+
+    function addToSequence(cardIdx, name) {
+      const card = cards[cardIdx];
+      card.suppliers.push({ name, type: 'Self', remainingVol: null });
+      card.notSequenced = card.notSequenced.filter(n => n !== name);
+      renderCards();
+    }
+
+    // ── Drag Handlers ────────────────────────────────────────────────────────
+
+    function handleDragStart(e, cardIdx, supplierIdx) {
+      dragCardIdx = cardIdx;
+      dragSupplierIdx = supplierIdx;
+      e.dataTransfer.effectAllowed = 'move';
+      // Defer so the drag image captures before opacity change
+      setTimeout(() => e.target.classList.add('dragging'), 0);
+    }
+
+    function handleDragOver(e, li) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragOverEl && dragOverEl !== li) dragOverEl.classList.remove('drag-over');
+      dragOverEl = li;
+      li.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e, li) {
+      // Only clear if leaving to outside the li entirely
+      if (!li.contains(e.relatedTarget)) {
+        li.classList.remove('drag-over');
+        if (dragOverEl === li) dragOverEl = null;
+      }
+    }
+
+    function handleDrop(e, cardIdx, targetIdx) {
+      e.preventDefault();
+      if (dragOverEl) { dragOverEl.classList.remove('drag-over'); dragOverEl = null; }
+      // Only allow reorder within the same card
+      if (dragCardIdx !== cardIdx) return;
+      if (dragSupplierIdx === targetIdx) return;
+      const suppliers = cards[cardIdx].suppliers;
+      const [moved] = suppliers.splice(dragSupplierIdx, 1);
+      suppliers.splice(targetIdx, 0, moved);
+      const finalIdx = suppliers.indexOf(moved);
+      renderCards();
+      // Flash wipe on the dropped row
+      requestAnimationFrame(() => {
+        const li = document.querySelector(
+          `li[data-card-idx="${cardIdx}"][data-supplier-idx="${finalIdx}"]`
+        );
+        if (!li) return;
+        li.style.background = '#fff';
+        const bar = document.createElement('div');
+        bar.className = 'drop-wipe-bar';
+        li.appendChild(bar);
+        bar.addEventListener('animationend', () => {
+          bar.remove();
+          li.style.background = '';
+          const nameEl = li.querySelector('.seq-supplier');
+          if (nameEl) {
+            const check = document.createElement('span');
+            check.className = 'seq-check';
+            check.textContent = '✔';
+            nameEl.insertAdjacentElement('afterend', check);
+            check.addEventListener('animationend', () => check.remove(), { once: true });
+          }
+        }, { once: true });
+      });
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      if (dragOverEl) { dragOverEl.classList.remove('drag-over'); dragOverEl = null; }
+      dragCardIdx = null;
+      dragSupplierIdx = null;
+    }
+
+    // ── Build Supplier Row (DOM) ─────────────────────────────────────────────
+
+    function buildSupplierRow(s, i, cardIdx) {
+      const li = document.createElement('li');
+      li.draggable = true;
+      li.dataset.cardIdx = cardIdx;
+      li.dataset.supplierIdx = i;
+
+      // Drag handle
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⠿';
+      handle.addEventListener('mousedown', () => { li.draggable = true; });
+
+      // Seq number
+      const num = document.createElement('span');
+      num.className = 'seq-num';
+      num.textContent = i + 1;
+
+      // Type chip
+      const chip = document.createElement('span');
+      chip.className = `seq-chip ${s.type}`;
+      chip.textContent = s.type;
+
+      // Supplier name
+      const name = document.createElement('span');
+      name.className = 'seq-supplier' + (i === 0 ? ' primary' : '');
+      name.textContent = s.name;
+
+      // Volume
+      const noVol = s.type === 'Self' || s.type === 'Unlimited';
+      const vol = document.createElement('span');
+      vol.className = 'seq-vol';
+      vol.textContent = noVol || s.remainingVol === null ? '—' : s.remainingVol.toLocaleString() + ' gal';
+
+      li.appendChild(handle);
+      li.appendChild(num);
+      li.appendChild(chip);
+      li.appendChild(name);
+      li.appendChild(vol);
+
+      li.addEventListener('dragstart', (e) => handleDragStart(e, cardIdx, i));
+      li.addEventListener('dragover',  (e) => handleDragOver(e, li));
+      li.addEventListener('dragleave', (e) => handleDragLeave(e, li));
+      li.addEventListener('drop',      (e) => handleDrop(e, cardIdx, i));
+      li.addEventListener('dragend',   (e) => handleDragEnd(e));
+
+      return li;
+    }
+
+    // ── Build Card ───────────────────────────────────────────────────────────
+
+    function buildCard(card, cardIdx) {
+      const div = document.createElement('div');
+      div.className = 'product-card';
+
+      // Header
+      const badgeLabel = card.status === 'allowed' ? 'Allowed' : 'Not Allowed';
+      const header = document.createElement('div');
+      header.className = `card-header ${card.status}`;
+      header.innerHTML = `
+        <div class="product-name">${card.product}</div>
+        <div class="status-badge ${card.status}">${badgeLabel}</div>`;
+
+      // Sequence list
+      const section = document.createElement('div');
+      section.className = 'sequence-section';
+
+      const ul = document.createElement('ul');
+      ul.className = 'sequence-list';
+      card.suppliers.forEach((s, i) => ul.appendChild(buildSupplierRow(s, i, cardIdx)));
+      section.appendChild(ul);
+
+      // Not sequenced
+      if (card.notSequenced && card.notSequenced.length) {
+        const ns = document.createElement('div');
+        ns.className = 'not-sequenced-section';
+
+        const label = document.createElement('div');
+        label.className = 'not-sequenced-label';
+        label.textContent = 'Not Sequenced';
+        ns.appendChild(label);
+
+        card.notSequenced.forEach(name => {
+          const row = document.createElement('div');
+          row.className = 'not-sequenced-row';
+
+          const nameEl = document.createElement('div');
+          nameEl.className = 'not-sequenced-name';
+          nameEl.textContent = name;
+
+          const btn = document.createElement('button');
+          btn.className = 'btn-add-seq';
+          btn.title = `Add ${name} to sequence`;
+          btn.textContent = '+';
+          btn.addEventListener('click', () => addToSequence(cardIdx, name));
+
+          row.appendChild(nameEl);
+          row.appendChild(btn);
+          ns.appendChild(row);
+        });
+
+        section.appendChild(ns);
+      }
+
+      div.appendChild(header);
+      div.appendChild(section);
+      return div;
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+
+    function renderCards() {
+      const filtered = getFilteredIndices();
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-results">No sequences match the current filters.</div>';
+        updateHeader(filtered.map(f => f.card));
+        return;
+      }
+
+      // Group by affiliate
+      const byAffiliate = {};
+      filtered.forEach(({ card, i }) => {
+        if (!byAffiliate[card.affiliate]) byAffiliate[card.affiliate] = [];
+        byAffiliate[card.affiliate].push({ card, i });
+      });
+
+      const affiliateKeys = Object.keys(byAffiliate);
+      const showGroupHeaders = affiliateKeys.length > 1;
+
+      affiliateKeys.forEach(affiliate => {
+        const group = document.createElement('div');
+        group.className = 'location-group';
+
+        if (showGroupHeaders) {
+          const h = document.createElement('div');
+          h.className = 'location-group-header';
+          h.textContent = affiliate;
+          group.appendChild(h);
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'card-grid';
+        byAffiliate[affiliate].forEach(({ card, i }) => grid.appendChild(buildCard(card, i)));
+        group.appendChild(grid);
+        container.appendChild(group);
+      });
+
+      updateHeader(filtered.map(f => f.card));
+    }
+
+    function updateHeader(filtered) {
+      const affiliates = [...new Set(filtered.map(c => c.affiliate))];
+      const title = affiliates.length === 0 ? '—'
+        : affiliates.length === 1 ? affiliates[0]
+        : `${affiliates.length} locations`;
+      document.getElementById('content-title').textContent = title;
+      document.getElementById('base-count').textContent = filtered.length;
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    renderSelectValue('affiliate', state.affiliates, 'All affiliates');
+    renderCards();
+  </script>
+
+</body>
+</html>
