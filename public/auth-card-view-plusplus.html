@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auth Sequencing — Cards+</title>
+  <title>Auth Sequencing — Cards++</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -170,10 +170,6 @@
     .tab:not(.active) .count { background: #eee; color: #888; }
 
     .toolbar-actions { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; }
-    .btn-filters {
-      padding: 6px 14px; font-size: 13px; border: 1px solid #bbb;
-      border-radius: 4px; background: #fff; color: #555; cursor: pointer; font-weight: 500;
-    }
     .btn-wizard {
       padding: 6px 14px; font-size: 13px; border: 1px solid #888;
       border-radius: 4px; background: #f0f0f0; color: #333; cursor: pointer; font-weight: 600;
@@ -213,7 +209,29 @@
 
     .sequence-section { padding: 8px 14px 12px; }
     .sequence-list { list-style: none; }
-    .sequence-list li { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12px; }
+
+    /* ── Supplier Row ── */
+    .sequence-list li {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 0; font-size: 12px;
+      border-top: 2px solid transparent;
+      transition: border-color 0.1s;
+    }
+    .sequence-list li.drag-over { border-top-color: #1976d2; }
+    .sequence-list li.dragging { opacity: 0.35; }
+
+    .drag-handle {
+      cursor: grab;
+      color: #ccc;
+      font-size: 13px;
+      flex-shrink: 0;
+      user-select: none;
+      line-height: 1;
+      padding: 0 1px;
+    }
+    .drag-handle:hover { color: #999; }
+    .drag-handle:active { cursor: grabbing; }
+
     .seq-num { font-size: 12px; font-weight: 700; color: #aaa; min-width: 14px; flex-shrink: 0; }
     .seq-supplier { color: #444; line-height: 1.3; flex: 1; min-width: 0; }
     .seq-supplier.primary { font-weight: 700; color: #333; }
@@ -227,9 +245,25 @@
     .seq-chip.expiring { background: #fff3e0; color: #e65100; }
     .seq-chip.expired  { background: #fce4ec; color: #c62828; }
     .seq-vol { font-size: 11px; color: #888; flex-shrink: 0; white-space: nowrap; min-width: 72px; text-align: right; }
+
+    /* ── Not Sequenced ── */
     .not-sequenced-section { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #e0e0e0; }
     .not-sequenced-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #bbb; margin-bottom: 3px; }
-    .not-sequenced-name { font-size: 11px; color: #bbb; font-style: italic; padding: 1px 0; }
+    .not-sequenced-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 2px 0;
+    }
+    .not-sequenced-name { font-size: 11px; color: #bbb; font-style: italic; }
+    .btn-add-seq {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid #ccc; background: #fff;
+      color: #999; font-size: 14px; font-weight: 400;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1; padding: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .btn-add-seq:hover { border-color: #4caf50; color: #2e7d32; background: #e8f5e9; }
 
     .card-footer { padding: 8px 14px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
     .btn-edit { padding: 4px 14px; font-size: 12px; font-weight: 600; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #555; cursor: pointer; }
@@ -304,7 +338,7 @@
   </div>
 
   <script>
-    // ── Data ────────────────────────────────────────────────────────────────
+    // ── Static Reference Data ────────────────────────────────────────────────
 
     const AFFILIATES = [
       '201 DES MOINES',
@@ -327,7 +361,9 @@
 
     const STATUS_OPTIONS = ['All', 'Allowed', 'Not Allowed'];
 
-    const ALL_CARDS = [
+    // ── Card Data (mutable — drag/add mutates this) ──────────────────────────
+
+    const SEED_CARDS = [
       // ── 347 BETTENDORF ──
       {
         affiliate: '347 BETTENDORF', product: 'A Premium Unleaded', status: 'allowed',
@@ -473,14 +509,22 @@
       },
     ];
 
-    // ── State ────────────────────────────────────────────────────────────────
+    // Deep copy so mutations don't affect seed
+    let cards = JSON.parse(JSON.stringify(SEED_CARDS));
+
+    // ── Drag State ───────────────────────────────────────────────────────────
+
+    let dragCardIdx = null;
+    let dragSupplierIdx = null;
+    let dragOverEl = null;
+
+    // ── Filter State ────────────────────────────────────────────────────────
 
     let state = {
       affiliates: ['347 BETTENDORF'],
       products: [],
       status: 'All',
     };
-
     let applied = { ...state, affiliates: [...state.affiliates], products: [...state.products] };
     let openDropdown = null;
 
@@ -529,8 +573,6 @@
       buildMultiDropdown('product', PRODUCTS, () => state.products, toggleProduct);
     }
 
-    // ── Single Select (Status) ────────────────────────────────────────────────
-
     function buildStatusDropdown() {
       const el = document.getElementById('status-dropdown');
       el.innerHTML = '';
@@ -547,8 +589,6 @@
         el.appendChild(div);
       });
     }
-
-    // ── Dropdown open/close ───────────────────────────────────────────────────
 
     function toggleDropdown(id) {
       if (openDropdown === id) { closeAllDropdowns(); return; }
@@ -583,7 +623,7 @@
       if (!e.target.closest('.filter-group')) closeAllDropdowns();
     });
 
-    // ── Filtering & Rendering ─────────────────────────────────────────────────
+    // ── Filtering ────────────────────────────────────────────────────────────
 
     function applyFilters() {
       applied = { affiliates: [...state.affiliates], products: [...state.products], status: state.status };
@@ -599,33 +639,200 @@
       renderCards();
     }
 
-    function getFilteredCards() {
-      return ALL_CARDS.filter(card => {
-        const affiliateMatch = applied.affiliates.length === 0 || applied.affiliates.includes(card.affiliate);
-        const productMatch = applied.products.length === 0 || applied.products.includes(card.product);
-        const statusMatch = applied.status === 'All' ||
-          (applied.status === 'Allowed' && card.status === 'allowed') ||
-          (applied.status === 'Not Allowed' && card.status === 'not-allowed');
-        return affiliateMatch && productMatch && statusMatch;
-      });
+    function getFilteredIndices() {
+      return cards
+        .map((card, i) => ({ card, i }))
+        .filter(({ card }) => {
+          const affiliateMatch = applied.affiliates.length === 0 || applied.affiliates.includes(card.affiliate);
+          const productMatch   = applied.products.length === 0   || applied.products.includes(card.product);
+          const statusMatch    = applied.status === 'All' ||
+            (applied.status === 'Allowed'     && card.status === 'allowed') ||
+            (applied.status === 'Not Allowed' && card.status === 'not-allowed');
+          return affiliateMatch && productMatch && statusMatch;
+        });
     }
 
+    // ── Add to Sequence ──────────────────────────────────────────────────────
+
+    function addToSequence(cardIdx, name) {
+      const card = cards[cardIdx];
+      card.suppliers.push({ name, authStatus: 'active', remainingVol: null });
+      card.notSequenced = card.notSequenced.filter(n => n !== name);
+      renderCards();
+    }
+
+    // ── Drag Handlers ────────────────────────────────────────────────────────
+
+    function handleDragStart(e, cardIdx, supplierIdx) {
+      dragCardIdx = cardIdx;
+      dragSupplierIdx = supplierIdx;
+      e.dataTransfer.effectAllowed = 'move';
+      // Defer so the drag image captures before opacity change
+      setTimeout(() => e.target.classList.add('dragging'), 0);
+    }
+
+    function handleDragOver(e, li) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragOverEl && dragOverEl !== li) dragOverEl.classList.remove('drag-over');
+      dragOverEl = li;
+      li.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e, li) {
+      // Only clear if leaving to outside the li entirely
+      if (!li.contains(e.relatedTarget)) {
+        li.classList.remove('drag-over');
+        if (dragOverEl === li) dragOverEl = null;
+      }
+    }
+
+    function handleDrop(e, cardIdx, targetIdx) {
+      e.preventDefault();
+      if (dragOverEl) { dragOverEl.classList.remove('drag-over'); dragOverEl = null; }
+      // Only allow reorder within the same card
+      if (dragCardIdx !== cardIdx) return;
+      if (dragSupplierIdx === targetIdx) return;
+      const suppliers = cards[cardIdx].suppliers;
+      const [moved] = suppliers.splice(dragSupplierIdx, 1);
+      suppliers.splice(targetIdx, 0, moved);
+      renderCards();
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      if (dragOverEl) { dragOverEl.classList.remove('drag-over'); dragOverEl = null; }
+      dragCardIdx = null;
+      dragSupplierIdx = null;
+    }
+
+    // ── Build Supplier Row (DOM) ─────────────────────────────────────────────
+
+    const CHIP_LABEL = { active: 'Active', expiring: 'Expiring', expired: 'Expired' };
+
+    function buildSupplierRow(s, i, cardIdx) {
+      const li = document.createElement('li');
+      li.draggable = true;
+
+      // Drag handle
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⠿';
+      handle.addEventListener('mousedown', () => { li.draggable = true; });
+
+      // Seq number
+      const num = document.createElement('span');
+      num.className = 'seq-num';
+      num.textContent = i + 1;
+
+      // Status chip
+      const chip = document.createElement('span');
+      chip.className = `seq-chip ${s.authStatus}`;
+      chip.textContent = CHIP_LABEL[s.authStatus];
+
+      // Supplier name
+      const name = document.createElement('span');
+      name.className = 'seq-supplier' + (i === 0 ? ' primary' : '');
+      name.textContent = s.name;
+
+      // Volume
+      const vol = document.createElement('span');
+      vol.className = 'seq-vol';
+      vol.textContent = s.remainingVol === null ? '—' : s.remainingVol.toLocaleString() + ' gal';
+
+      li.appendChild(handle);
+      li.appendChild(num);
+      li.appendChild(chip);
+      li.appendChild(name);
+      li.appendChild(vol);
+
+      li.addEventListener('dragstart', (e) => handleDragStart(e, cardIdx, i));
+      li.addEventListener('dragover',  (e) => handleDragOver(e, li));
+      li.addEventListener('dragleave', (e) => handleDragLeave(e, li));
+      li.addEventListener('drop',      (e) => handleDrop(e, cardIdx, i));
+      li.addEventListener('dragend',   (e) => handleDragEnd(e));
+
+      return li;
+    }
+
+    // ── Build Card ───────────────────────────────────────────────────────────
+
+    function buildCard(card, cardIdx) {
+      const div = document.createElement('div');
+      div.className = 'product-card';
+
+      // Header
+      const badgeLabel = card.status === 'allowed' ? 'Allowed' : 'Not Allowed';
+      const header = document.createElement('div');
+      header.className = `card-header ${card.status}`;
+      header.innerHTML = `
+        <div class="product-name">${card.product}</div>
+        <div class="status-badge ${card.status}">${badgeLabel}</div>`;
+
+      // Sequence list
+      const section = document.createElement('div');
+      section.className = 'sequence-section';
+
+      const ul = document.createElement('ul');
+      ul.className = 'sequence-list';
+      card.suppliers.forEach((s, i) => ul.appendChild(buildSupplierRow(s, i, cardIdx)));
+      section.appendChild(ul);
+
+      // Not sequenced
+      if (card.notSequenced && card.notSequenced.length) {
+        const ns = document.createElement('div');
+        ns.className = 'not-sequenced-section';
+
+        const label = document.createElement('div');
+        label.className = 'not-sequenced-label';
+        label.textContent = 'Not Sequenced';
+        ns.appendChild(label);
+
+        card.notSequenced.forEach(name => {
+          const row = document.createElement('div');
+          row.className = 'not-sequenced-row';
+
+          const nameEl = document.createElement('div');
+          nameEl.className = 'not-sequenced-name';
+          nameEl.textContent = name;
+
+          const btn = document.createElement('button');
+          btn.className = 'btn-add-seq';
+          btn.title = `Add ${name} to sequence`;
+          btn.textContent = '+';
+          btn.addEventListener('click', () => addToSequence(cardIdx, name));
+
+          row.appendChild(nameEl);
+          row.appendChild(btn);
+          ns.appendChild(row);
+        });
+
+        section.appendChild(ns);
+      }
+
+      div.appendChild(header);
+      div.appendChild(section);
+      return div;
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+
     function renderCards() {
-      const filtered = getFilteredCards();
+      const filtered = getFilteredIndices();
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
 
       if (filtered.length === 0) {
         container.innerHTML = '<div class="no-results">No sequences match the current filters.</div>';
-        updateHeader(filtered);
+        updateHeader(filtered.map(f => f.card));
         return;
       }
 
       // Group by affiliate
       const byAffiliate = {};
-      filtered.forEach(card => {
+      filtered.forEach(({ card, i }) => {
         if (!byAffiliate[card.affiliate]) byAffiliate[card.affiliate] = [];
-        byAffiliate[card.affiliate].push(card);
+        byAffiliate[card.affiliate].push({ card, i });
       });
 
       const affiliateKeys = Object.keys(byAffiliate);
@@ -636,56 +843,20 @@
         group.className = 'location-group';
 
         if (showGroupHeaders) {
-          const header = document.createElement('div');
-          header.className = 'location-group-header';
-          header.textContent = affiliate;
-          group.appendChild(header);
+          const h = document.createElement('div');
+          h.className = 'location-group-header';
+          h.textContent = affiliate;
+          group.appendChild(h);
         }
 
         const grid = document.createElement('div');
         grid.className = 'card-grid';
-
-        byAffiliate[affiliate].forEach(card => {
-          grid.appendChild(buildCard(card));
-        });
-
+        byAffiliate[affiliate].forEach(({ card, i }) => grid.appendChild(buildCard(card, i)));
         group.appendChild(grid);
         container.appendChild(group);
       });
 
-      updateHeader(filtered);
-    }
-
-    function buildCard(card) {
-      const div = document.createElement('div');
-      div.className = 'product-card';
-      const badgeLabel = card.status === 'allowed' ? 'Allowed' : 'Not Allowed';
-      const chipLabel = { active: 'Active', expiring: 'Expiring', expired: 'Expired' };
-      const suppliersHtml = card.suppliers.map((s, i) => {
-        const vol = s.remainingVol === null ? '—' : s.remainingVol.toLocaleString() + ' gal';
-        return `<li>
-          <span class="seq-num">${i + 1}</span>
-          <span class="seq-chip ${s.authStatus}">${chipLabel[s.authStatus]}</span>
-          <span class="seq-supplier${i === 0 ? ' primary' : ''}">${s.name}</span>
-          <span class="seq-vol">${vol}</span>
-        </li>`;
-      }).join('');
-      const notSeqHtml = (card.notSequenced && card.notSequenced.length)
-        ? `<div class="not-sequenced-section">
-             <div class="not-sequenced-label">Not Sequenced</div>
-             ${card.notSequenced.map(n => `<div class="not-sequenced-name">${n}</div>`).join('')}
-           </div>` : '';
-      div.innerHTML = `
-        <div class="card-header ${card.status}">
-          <div class="product-name">${card.product}</div>
-          <div class="status-badge ${card.status}">${badgeLabel}</div>
-        </div>
-        <div class="sequence-section">
-          <ul class="sequence-list">${suppliersHtml}</ul>
-          ${notSeqHtml}
-        </div>
-        <div class="card-footer"><button class="btn-edit">Edit</button></div>`;
-      return div;
+      updateHeader(filtered.map(f => f.card));
     }
 
     function updateHeader(filtered) {

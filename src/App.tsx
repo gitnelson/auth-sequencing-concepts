@@ -9,6 +9,7 @@ import Divider from '@mui/material/Divider';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AuthSequencingCardView from './AuthSequencingCardView';
+import AuthSequencingCardViewPlusPlus from './AuthSequencingCardViewPlusPlus';
 import AuthSequencingTable from './AuthSequencingTable';
 import AuthSequencingTablePlus from './AuthSequencingTablePlus';
 
@@ -18,11 +19,12 @@ const theme = createTheme({
   },
 });
 
-type Page = 'home' | 'auth-cards' | 'auth-table' | 'auth-table-plus';
+type Page = 'home' | 'auth-cards' | 'auth-cards-plus' | 'auth-table' | 'auth-table-plus';
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace('#', '');
   if (hash === 'auth-cards') return 'auth-cards';
+  if (hash === 'auth-cards-plus') return 'auth-cards-plus';
   if (hash === 'auth-table') return 'auth-table';
   if (hash === 'auth-table-plus') return 'auth-table-plus';
   return 'home';
@@ -83,6 +85,13 @@ function NavBar({ current, collapsed, onToggle }: { current: Page; collapsed: bo
       </Button>
       <Button
         size="small"
+        variant={current === 'auth-cards-plus' ? 'contained' : 'text'}
+        onClick={() => navigate('auth-cards-plus')}
+      >
+        Cards++
+      </Button>
+      <Button
+        size="small"
         variant={current === 'auth-table' ? 'contained' : 'text'}
         onClick={() => navigate('auth-table')}
       >
@@ -109,6 +118,7 @@ type ConceptEntry = { page: Page; label: string };
 
 const CONCEPTS: ConceptEntry[] = [
   { page: 'auth-cards',      label: 'Cards+' },
+  { page: 'auth-cards-plus', label: 'Cards++' },
   { page: 'auth-table',      label: 'Table' },
   { page: 'auth-table-plus', label: 'Table+' },
 ];
@@ -172,6 +182,7 @@ function App() {
       <NavBar current={page} collapsed={navCollapsed} onToggle={() => setNavCollapsed((c) => !c)} />
       {page === 'home' && <HomePage />}
       {page === 'auth-cards' && <AuthSequencingCardView />}
+      {page === 'auth-cards-plus' && <AuthSequencingCardViewPlusPlus />}
       {page === 'auth-table' && <AuthSequencingTable />}
       {page === 'auth-table-plus' && <AuthSequencingTablePlus />}
     </ThemeProvider>
